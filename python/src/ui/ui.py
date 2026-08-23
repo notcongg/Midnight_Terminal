@@ -1,6 +1,6 @@
 import subprocess
 import os
-from src.ui.banner import print_banner
+from python.src.ui.banner import print_banner
 
 def clear():
     subprocess.run(

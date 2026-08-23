@@ -1,6 +1,6 @@
-from src.cmd.init import *
-from src.ui.display_path.dp import display_path
-from src.cmd.rootfs.ls.get_vol_info import get_volume_label, get_volume_serial
+from python.src.cmd.init import *
+from python.src.ui.display_path.dp import display_path
+from python.src.cmd.rootfs.ls.get_vol_info import get_volume_label, get_volume_serial
 
 def human_size(size):
     for unit in ["B", "KiB", "MiB", "GiB", "TiB", "PiB"]:

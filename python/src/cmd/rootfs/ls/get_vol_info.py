@@ -1,4 +1,4 @@
-from src.cmd.init import *
+from python.src.cmd.init import *
 
 def get_volume_serial(p):
     try:
@@ -40,10 +40,10 @@ def get_volume_label(p):
             ctypes.c_wchar_p(drive),
             volume_name,
             ctypes.sizeof(volume_name),
-            None,     
-            None,     
-            None,       
-            None,       
+            None,
+            None,
+            None,
+            None,
             0
         )
 

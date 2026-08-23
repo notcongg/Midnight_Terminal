@@ -1,5 +1,5 @@
-from src.cmd.init import *
-from src.cmd.rootfs.ls.ls import human_size
+from python.src.cmd.init import *
+from python.src.cmd.rootfs.ls.ls import human_size
 
 def cmd_tree(args):
     global path

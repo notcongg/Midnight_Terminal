@@ -1,4 +1,4 @@
-from src.cmd.init import *
+from python.src.cmd.init import *
 
 def cmd_rem(args):
 

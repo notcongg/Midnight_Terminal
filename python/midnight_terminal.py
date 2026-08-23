@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""--Midnight Terminal - (c) Congg 2026. All right reversed."""
+"""--Midnight Terminal - (c) Congg 2026. All right reserved."""
 """--[Imports]--"""
 """--[1 - INIT]"""
-from src.cmd.init import *
+from python.src.cmd.init import *
 """--[2 - CMDS]"""
-from src.cmd.rootfs.alias import expand_alias, load_aliases
-from src.cmd.utils.registry import load_commands, COMMANDS
+from python.src.cmd.rootfs.alias import expand_alias, load_aliases
+from python.src.cmd.utils.registry import load_commands, COMMANDS
 """--[3 - UTILS]"""
-from src.cmd.utils.hw_info.hardware_infomation import get_system_info as sysinfo
+from python.src.cmd.utils.hw_info.hardware_infomation import get_system_info as sysinfo
 """--[4 - UI]"""
-from src.ui.ui import ui
-from src.ui.display_path.dp import display_path
+from python.src.ui.ui import ui
+from python.src.ui.display_path.dp import display_path
 
 load_commands()
 load_aliases()
