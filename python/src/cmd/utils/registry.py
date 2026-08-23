@@ -4,8 +4,8 @@ from pathlib import Path
 
 COMMANDS = {}
 
-ROOTFS_PATH = Path(__file__).resolve().parent.parent / "rootfs"
-PACKAGE = "src.cmd.rootfs"
+ROOTFS_PATH = Path(__file__).resolve().parent / "rootfs"
+PACKAGE = f"{__package__}.rootfs"
 
 
 def load_commands():

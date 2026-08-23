@@ -1,4 +1,4 @@
-def cmd_help():
+def cmd_help(args):
     print("""
 MoonLight Terminal [V 0.001] HELP CENTER
 
@@ -7,7 +7,7 @@ CD <path>      Change directory.
 LS             List directory.
 LS -a          Show hidden files.
 LS -h          Human readable size.
-LS -ah         Combine both. 
+LS -ah         Combine both.
 
 WHERE <name>   Search file/folder recursively.
 ECHO <text>    Print text OR read file content if path exists.

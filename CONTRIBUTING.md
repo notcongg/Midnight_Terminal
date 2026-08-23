@@ -1,0 +1,3 @@
+- Contributors may submit code.
+- Contributions are subject to project review.
+- No redistribution of the project outside the repository without permission.
