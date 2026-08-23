@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""--Midnight Terminal - (c) Congg 2026. All right reserved."""
+"""--Midnight Terminal - (c) Congg 2026. License GNU GPL v3.0"""
 """--[Imports]--"""
 """--[1 - INIT]"""
 from python.src.cmd.init import *
