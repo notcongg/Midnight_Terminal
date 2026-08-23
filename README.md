@@ -1,2 +1,2 @@
-(c) Congg. All right reversed.
+(c) Congg. All right reserved.
 Midnight terminal. Ok.
