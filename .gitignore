@@ -5,4 +5,4 @@ note.txt
 src/history/
 midnight_Test/
 src/cmd/rootfs/ai/.env
-src\data
+src/data/log/AI_LOG.log
