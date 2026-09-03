@@ -3,17 +3,20 @@ from pathlib import Path
 from src.cmd.init import hostname, username
 from src.cmd.rootfs.alias.alias import load_aliases
 from src.cmd.utils.registry import load_commands
+from src.input.input import get_input
 from src.shell.errors.errors import ShellError
 from src.shell.shell import Shell
+from src.shell.syntax.corrector import correct_command
+from src.shell.syntax.validator import validate
 from src.ui.display_path.dp import display_path
 from src.ui.ui import ui
-from src.input.input import get_input
 
 
 def run() -> None:
     load_commands()
 
     shell = Shell()
+
     load_aliases(shell.context)
 
     ui()
@@ -35,6 +38,14 @@ def run() -> None:
             continue
 
         if not cmd.strip():
+            continue
+
+        cmd = correct_command(cmd)
+
+        result = validate(cmd)
+
+        if not result.valid:
+            print(f"syntax error: {result.error}")
             continue
 
         try:

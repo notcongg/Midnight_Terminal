@@ -5,6 +5,7 @@ from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.styles import Style
 
+from src.input.autocomplete import MidnightCompleter
 from src.input.history import history
 
 
@@ -39,4 +40,5 @@ def prompt(
         history=history,
         style=STYLE,
         cursor=CursorShape.BLINKING_BEAM,
+        completer=MidnightCompleter(),
     )

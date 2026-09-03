@@ -177,6 +177,13 @@ This allows new commands to be added without manually maintaining a large comman
 * [ ] Output redirection
 * [x] Pipelines
 * [ ] Process management
+### Input
+* [x] Custom PATH input
+* [x] AutoComplete
+* [x] Syntaxes Corrector
+* [x] Matcher
+* [x] Suggestions
+* [x] Validator
 
 ### Commands
 
