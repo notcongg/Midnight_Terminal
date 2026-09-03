@@ -170,9 +170,9 @@ This allows new commands to be added without manually maintaining a large comman
 * [x] Command aliases
 * [x] File system commands
 * [x] Hardware information
-* [ ] Command history
+* [x] Command history
 * [ ] Environment variables
-* [ ] Command parser
+* [x] Command parser
 * [ ] Quoted arguments
 * [ ] Output redirection
 * [ ] Pipelines
