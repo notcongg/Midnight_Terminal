@@ -4,3 +4,5 @@ __pycache__/
 note.txt
 src/history/
 midnight_Test/
+src/cmd/rootfs/ai/.env
+src\data

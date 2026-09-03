@@ -44,7 +44,9 @@ def _invoke_command(
 ) -> str | None:
     try:
         try:
-            param_count = len(inspect.signature(handler).parameters)
+            param_count = len(
+                inspect.signature(handler).parameters
+            )
         except (TypeError, ValueError):
             param_count = 1
 
@@ -69,7 +71,12 @@ def _open_redirect_path(
     mode: str,
 ):
     path = context.resolve_path(target)
-    return open(path, mode, encoding="utf-8")
+
+    return open(
+        path,
+        mode,
+        encoding="utf-8",
+    )
 
 
 def execute(
@@ -77,12 +84,18 @@ def execute(
     context: ShellContext,
 ) -> None:
     if not pipeline.commands:
-        raise ExecutionError("Cannot execute an empty pipeline")
+        raise ExecutionError(
+            "Cannot execute an empty pipeline"
+        )
 
     piped_input: str | None = None
 
-    for index, command in enumerate(pipeline.commands):
-        is_last = index == len(pipeline.commands) - 1
+    for index, command in enumerate(
+        pipeline.commands
+    ):
+        is_last = (
+            index == len(pipeline.commands) - 1
+        )
 
         piped_input = _execute_single_command(
             command,
@@ -115,6 +128,10 @@ def _execute_single_command(
         if redirection.type == "<"
     ]
 
+    # -------------------------------------------------------------
+    # Input redirection
+    # -------------------------------------------------------------
+
     if input_redirections:
         source_path = input_redirections[-1].target
 
@@ -133,10 +150,30 @@ def _execute_single_command(
                 command_name=command.name,
             ) from exc
 
+    # -------------------------------------------------------------
+    # Create execution context
+    # -------------------------------------------------------------
+
     exec_context = context.clone_streams_reset()
 
+    # IMPORTANT:
+    # Tell commands whether stdin actually comes from
+    # a pipeline or input redirection.
+    #
+    # Do not force stdin to None because other commands
+    # may legitimately use the normal terminal stdin.
+    exec_context.has_pipeline_input = (
+        effective_input is not None
+    )
+
     if effective_input is not None:
-        exec_context.stdin = io.StringIO(effective_input)
+        exec_context.stdin = io.StringIO(
+            effective_input
+        )
+
+    # -------------------------------------------------------------
+    # Output capture
+    # -------------------------------------------------------------
 
     capture = (
         not is_last
@@ -154,8 +191,14 @@ def _execute_single_command(
         else context.stdout
     )
 
+    # -------------------------------------------------------------
+    # Execute
+    # -------------------------------------------------------------
+
     try:
-        with contextlib.redirect_stdout(stdout_target):
+        with contextlib.redirect_stdout(
+            stdout_target
+        ):
             output = _invoke_command(
                 handler,
                 command.name,
@@ -165,7 +208,13 @@ def _execute_single_command(
 
     finally:
         context.cwd = exec_context.cwd
-        context.exit_requested = exec_context.exit_requested
+        context.exit_requested = (
+            exec_context.exit_requested
+        )
+
+    # -------------------------------------------------------------
+    # Collect captured output
+    # -------------------------------------------------------------
 
     captured = (
         buffer.getvalue()
@@ -182,6 +231,10 @@ def _execute_single_command(
 
     elif captured:
         output = captured + output
+
+    # -------------------------------------------------------------
+    # Output redirection
+    # -------------------------------------------------------------
 
     if output_redirections:
         redirection = output_redirections[-1]
@@ -214,6 +267,10 @@ def _execute_single_command(
 
         return None
 
+    # -------------------------------------------------------------
+    # Final command
+    # -------------------------------------------------------------
+
     if is_last:
         if output is not None:
             context.stdout.write(output)
@@ -222,5 +279,9 @@ def _execute_single_command(
                 context.stdout.write("\n")
 
         return None
+
+    # -------------------------------------------------------------
+    # Pipeline output
+    # -------------------------------------------------------------
 
     return output
