@@ -175,7 +175,7 @@ This allows new commands to be added without manually maintaining a large comman
 * [x] Command parser
 * [ ] Quoted arguments
 * [ ] Output redirection
-* [ ] Pipelines
+* [x] Pipelines
 * [ ] Process management
 
 ### Commands
@@ -196,7 +196,7 @@ This allows new commands to be added without manually maintaining a large comman
 * [ ] `head`
 * [ ] `tail`
 * [ ] `stat`
-* [ ] `grep`
+* [x] `grep`
 
 ### Future
 
