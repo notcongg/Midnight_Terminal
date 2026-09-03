@@ -192,22 +192,11 @@ This allows new commands to be added without manually maintaining a large comman
 * [x] `which`
 * [x] `tree`
 * [x] `hwinfo`
-* [ ] `cp`
-* [ ] `head`
-* [ ] `tail`
-* [ ] `stat`
+* [x] `cp`
+* [x] `head`
+* [x] `tail`
+* [x] `stat`
 * [x] `grep`
-
-### Future
-
-* [ ] Better shell parser
-* [ ] Pipelines
-* [ ] Redirection
-* [ ] Environment variables
-* [ ] Process management
-* [ ] Native Windows APIs
-* [ ] C/C++ implementation
-* [ ] Cross-platform support
 
 ---
 
