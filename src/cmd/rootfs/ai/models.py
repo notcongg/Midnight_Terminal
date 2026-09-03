@@ -25,7 +25,7 @@ MODELS: dict[str, ModelConfig] = {
     "deep": ModelConfig(
         name="deep",
         env_key="DEEPSEEK_API",
-        model="deepseek-v4-pro-0813",
+        model="deepseek-ai/deepseek-v4-pro-0813",
     ),
 }
 

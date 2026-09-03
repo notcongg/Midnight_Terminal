@@ -1,0 +1,259 @@
+
+================================================================
+[2026-09-03 12:56:15]
+
+[REQUEST]
+model: fast
+engine: nvidia/nemotron-3-super-120b-a12b
+thinking: False
+stream: False
+question: hello
+
+[RESPONSE]
+Hello! 👋 How can I help you today?
+================================================================
+
+================================================================
+[2026-09-03 12:56:27]
+
+[REQUEST]
+model: fast
+engine: nvidia/nemotron-3-super-120b-a12b
+thinking: False
+stream: False
+question: write a Python hello world
+
+[RESPONSE]
+Here's a simple Python "Hello, World!" program:
+
+```python
+print("Hello, World!")
+```
+
+To run it:
+1. Save this code in a file with a `.py` extension (e.g., `hello.py`)
+2. Run it using Python: `python hello.py` (or `python3 hello.py` depending on your system)
+
+When executed, it will output:
+```
+Hello, World!
+```
+
+This is the traditional first program for learning any programming language, and in Python it's beautifully simple—just one line using the built-in `print()` function.
+================================================================
+
+================================================================
+[2026-09-03 12:58:23]
+
+[REQUEST]
+model: medium
+engine: nvidia/nemotron-3-ultra-550b-a55b
+thinking: False
+stream: False
+question: explain how a shell parser works
+
+[RESPONSE]
+A shell parser transforms a raw text string (the command line) into a structured **Abstract Syntax Tree (AST)** that the shell can execute. It is the bridge between human-readable syntax and machine-executable logic.
+
+Here is a breakdown of how a standard POSIX-like shell parser (bash, zsh, sh, dash) works, from raw input to executable structure.
+
+---
+
+### 1. The Pipeline: Lexer $\rightarrow$ Parser $\rightarrow$ AST
+
+The process is traditionally split into two phases, though optimized implementations often fuse them.
+
+#### Phase 1: Lexical Analysis (Tokenization)
+The **Lexer** (Scanner) reads the raw character stream and groups characters into **Tokens**. It applies the shell's complex quoting rules *during* this phase.
+
+**Key Token Types:**
+*   `WORD`: Generic arguments, command names, filenames (e.g., `ls`, `-l`, `file.txt`).
+*   `OPERATOR`: Control operators (`|`, `&&`, `||`, `;`, `;;`, `&`, `|&`).
+*   `REDIRECTION`: `<`, `>`, `>>`, `<<`, `<<<`, `>&`, `<&`.
+*   `ASSIGNMENT_WORD`: `VAR=value` (detected contextually at command start).
+*   `RESERVED_WORD`: `if`, `then`, `else`, `fi`, `for`, `while`, `do`, `done`, `case`, `esac`, `{`, `}`, `!`, `[[`, `]]`.
+
+**The Quoting Context Stack:**
+The lexer maintains a state machine for quoting. It does not just "split on spaces."
+*   **Unquoted:** Word splitting happens; globbing happens later; special chars (`|`, `>`, `$`, `` ` ``) are meta-characters.
+*   **Single Quotes (`'...'`):** **Literal mode.** Everything is a `WORD`. No expansion, no escaping. Ends only at next `'`.
+*   **Double Quotes (`"..."`):** **Weak quoting.** Parameter expansion (`$var`), command substitution (`$(cmd)`), arithmetic (`$((...))`) happen. Backslash escapes only `$`, `` ` ``, `"`, `\`, newline. Ends at unescaped `"`.
+*   **Backslash (`\`):** Escapes the next character (removes special meaning), unless inside single quotes.
+
+> **Example:** `echo "It\'s $USER"` $\rightarrow$ Tokens: `WORD(echo)`, `WORD(It's alice)`.
+
+---
+
+#### Phase 2: Syntactic Analysis (Parsing)
+The **Parser** consumes the token stream and builds the **AST** based on the Shell Grammar (defined in POSIX spec, roughly LL(1) or LR(1) with hacks).
+
+**Grammar Hierarchy (Precedence High $\rightarrow$ Low):**
+1.  **Primary Expressions:** Simple commands, Subshells `(list)`, Braces `{ list; }`, `for`/`while`/`if`/`case` compounds.
+2.  **Redirections:** Attached to simple commands or compound commands (e.g., `cmd > file`, `{ ... } 2>&1`).
+3.  **Pipelines:** `cmd1 | cmd2 | cmd3` (Left-associative).
+4.  **Lists (Sequences):** `cmd1 ; cmd2`, `cmd1 && cmd2`, `cmd1 || cmd2`, `cmd1 &`.
+5.  **Complete Commands:** Newline or `;` terminated lists.
+
+**The "Command Position" Ambiguity (The Hard Part):**
+Shell grammar is **context-sensitive**. The meaning of a token depends on *where* it appears.
+*   `VAR=value` is an **Assignment** only if it appears *before* a command name in a simple command.
+*   `VAR=value` is a **Word/Argument** if it appears *after* the command name (e.g., `env VAR=value`).
+*   `(` starts a **Subshell** in command position, but starts an **Arithmetic Context** inside `(( ... ))` or `$(( ... ))`.
+*   `[[` is a reserved word *only* if recognized as a command start.
+
+**Parser Algorithm (Recursive Descent with Lookahead):**
+Most shells (bash, dash, zsh) use a hand-written **Recursive Descent Parser** because the grammar requires arbitrary lookahead and state (e.g., "am I in a command position?").
+
+```text
+parse_list()        -> parse_and_or() { (';' | '&' | newline) parse_and_or() }*
+parse_and_or()      -> parse_pipeline() { ('&&' | '||') parse_pipeline() }*
+parse_pipeline()    -> parse_command() { '|' parse_command() }*
+parse_command()     -> parse_simple_command() | parse_compound_command() | parse_function_def()
+parse_simple_command() -> { ASSIGNMENT_WORD | REDIRECTION | WORD }*  // Order matters!
+parse_compound_command() -> '(' list ')' | '{' list '}' | 'for' ... | 'if' ... | 'case' ... | '(' '(' expr ')' ')' | '[' '[' cond ']' ']'
+```
+
+---
+
+### 3. Critical Implementation Details
+
+#### A. Alias Expansion (Pre-Parsing / Lexer Hook)
+Aliases are expanded **during lexing**, not parsing.
+*   When the lexer reads a `WORD` in **command position** (first token of a simple command, or after `;`, `|`, `&&`, `(`), it checks the alias table.
+*   If matched, the alias definition is pushed onto a **token stream stack** (input buffer), and lexing continues from the alias body.
+*   *Recursion limit* prevents infinite loops (`alias ls='ls -l'`).
+
+#### B. Heredoc Handling (`<<EOF`)
+This is a lexer/parser coordination nightmare.
+1.  **Parser** sees `<<` token. Parses the delimiter (`EOF`, `'EOF'`, `\EOF`).
+2.  **Parser** records: "After current command structure finishes, read lines from stdin until delimiter."
+3.  **Lexer/Execution Engine** suspends normal tokenization. Reads raw lines (preserving newlines).
+4.  Performs expansion on heredoc body *unless* delimiter was quoted (`'EOF'`).
+5.  Feeds resulting string as stdin to the command.
+
+#### C. Command Substitution `$(...)` and Arithmetic `$((...))`
+*   **Lexer** detects `$(`, `((`, `` ` ``.
+*   **Lexer** enters a **nested parsing mode**. It recursively calls the **Parser** on the substring inside.
+*   The nested parser runs *completely independently* (new quoting state, new command position state).
+*   Resulting AST subtree is attached to the parent `WORD` node as a `CommandSubstitution` node.
+*   *Backticks `` `...` ``* are parsed similarly but with painful escaping rules (nesting is difficult/impossible).
+
+#### D. Redirection Parsing
+Redirections can appear **anywhere** in a simple command:
+`>out.txt cmd arg <in.txt >append.txt arg2`
+The parser collects all redirection tokens into a list attached to the Simple Command AST node, regardless of position. The executor sorts/applies them left-to-right at runtime.
+
+---
+
+### 4. The Output: Abstract Syntax Tree (AST)
+
+The parser produces a tree structure. Simplified C-struct style:
+
+```c
+enum NodeType { N_PIPE, N_AND, N_OR, N_SEMICOL, N_SUBSHELL, N_BRACE, N_IF, N_FOR, N_WHILE, N_CASE, N_SIMPLE, N_REDIR, N_FUNCDEF };
+
+struct ASTNode {
+    NodeType type;
+    // Common
+    SourceLocation loc; 
+    
+    // N_SIMPLE
+    char **words;           // Expanded argv (assignments separated)
+    Redirect *redirects;    // Linked list of redirections
+    
+    // N_PIPE, N_AND, N_OR, N_SEMICOL
+    ASTNode *left;
+    ASTNode *right;
+    
+    // N_IF
+    ASTNode *cond;      // List (condition)
+    ASTNode *then_part; // List
+    ASTNode *else_part; // List (optional)
+    
+    // N_FOR
+    char *var_name;
+    ASTNode *word_list; // List of words (in ...)
+    ASTNode *body;      // List (do ... done)
+    
+    // N_REDIR (attached to commands)
+    int fd;             // Source FD (default 0 or 1)
+    int type;           // R_IN, R_OUT, R_APPEND, R_HEREDOC, R_DUP
+    char *target;       // Filename or &FD
+    char *heredoc_content; // Pre-expanded heredoc string
+};
+```
+
+---
+
+### 5. Post-Parsing: Expansion (The "Second Pass")
+**Crucial Distinction:** The Parser builds the *structure* with *unexpanded* words.
+Expansion (Parameter `$var`, Command `$(cmd)`, Arithmetic `$((1+1))`, Globbing `*.c`, Quote Removal) happens **AFTER** parsing, during the **Execution Phase** (or a dedicated expansion pass right before execution).
+
+*   **Parser sees:** `WORD("*.c")`
+*   **AST stores:** `WORD("*.c")`
+*   **Executor:** Performs globbing $\rightarrow$ `["file1.c", "file2.c"]` $\rightarrow$ passes to `execve`.
+
+*Exception:* Assignment words (`VAR=value`) in command position often undergo **tilde expansion** and **assignment-specific expansion** during parsing/pre-execution setup.
+
+---
+
+### 6. Differences in Major Shells
+
+| Feature | **bash** | **zsh** | **dash / POSIX sh** | **Oil Shell (OSH)** |
+| :--- | :--- | :--- | :--- | :--- |
+| **Parser Tech** | Hand-written Recursive Descent (yacc/bison originally, now custom C) | Hand-written Recursive Descent (highly optimized C) | Hand-written Recursive Descent (tiny, fast) | **Oil Language (Python/C++)** -> Transpiled to C++ (Parser Generator / Pratt Parser) |
+| **Grammar** | POSIX + Extensions (`[[`, `((`, `&>`, `<<<`) | POSIX + Heavy Extensions (glob qualifiers, advanced arrays) | Strict POSIX | **Cleaned up POSIX** + Oil expressions (Python-like) |
+| **AST Access** | Internal only (`declare -p` limited) | Internal only | Internal only | **First-class** (`osh --parse-only`, JSON output) |
+| **Error Recovery** | Poor (stops at first error) | Moderate | Poor | **Excellent** (designed for IDEs/LSP) |
+
+---
+
+### 7. How to Explore This Yourself
+
+#### 1. See the Tokens (Bash)
+```bash
+# Bash 5.0+ shows tokens via debug trap
+trap 'echo "TOKEN: $BASH_COMMAND"' DEBUG
+echo "hello $USER"
+# Output shows tokenization steps
+```
+
+#### 2. See the AST (Oil Shell / OSH - Best for Learning)
+Oil is designed for transparency.
+```bash
+echo 'echo hello | grep h' | osh --parse-only --ast-format text
+```
+**Output:**
+```
+(Pipe
+  (SimpleCommand (Word "echo") (Word "hello"))
+  (SimpleCommand (Word "grep") (Word "h")))
+```
+
+#### 3. Read the Source (Dash is most readable)
+`dash` (Debian Almquist Shell) is ~20k lines of C.
+*   `main.c` -> `parsecmd()` entry point.
+*   `parse.c` -> `parse_command()`, `parse_simple()`, `parse_redir()`.
+*   `expand.c` -> Expansion logic (separate from parse).
+*   `eval.c` -> Tree walker execution.
+
+#### 4. Write a Toy Parser (Pratt Parser / Top-Down Operator Precedence)
+Shell grammar maps perfectly to a **Pratt Parser** because operators (`|`, `&&`, `;`) have clear precedence and associativity.
+1.  Parse "Primary" (Simple Command / Subshell / Brace Group).
+2.  Loop: Check next token for Infix Operator (`|`, `&&`).
+3.  If precedence > current, recurse to parse Right Hand Side.
+4.  Build Binary Node (`left`, `op`, `right`).
+
+---
+
+### Summary Checklist for a Shell Parser Implementation
+1.  [ ] **Lexer State Machine:** Handle `'...'`, `"..."`, `$'...'`, `\`, `` `...` ``, `$(...)`, `$((...))`, `<<HEREDOC`.
+2.  [ ] **Alias Expansion:** Hook into lexer at "Command Position".
+3.  [ ] **Recursive Descent Functions:** `parse_list`, `parse_and_or`, `parse_pipeline`, `parse_command`, `parse_simple`, `parse_compound`.
+4.  [ ] **Context Tracking:** `in_command_position` boolean (for assignments/keywords).
+5.  [ ] **Redirection Collection:** Grab redirections anywhere in simple command.
+6.  [ ] **Heredoc Queue:** Store delimiters + content to feed executor later.
+7.  [ ] **AST Nodes:** Define structs for List, Pipe, AndOr, Simple, Subshell, If, For, While, Case, Function, Redirect.
+8.  [ ] **Expansion Engine:** Separate module: Tilde $\rightarrow$ Param $\rightarrow$ CmdSub $\rightarrow$ Arith $\rightarrow$ QuoteRemoval $\rightarrow$ Globbing $\rightarrow$ WordSplitting.
+9.  [ ] **Executor:** DFS walk of AST, `fork`/`exec`/`pipe`/`dup2`/`wait`.
+================================================================
