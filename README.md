@@ -28,38 +28,48 @@ Midnight Terminal is a hobby terminal/shell project focused on learning, experim
 
 ---
 
-## 📦 Commands
+### 🖥️ Shell & System
 
 | Command  | Description                                |
 | -------- | ------------------------------------------ |
 | `alias`  | Create or manage command aliases           |
-| `ai`     | Ask an AI model a question                 |
-| `cat`    | Display file contents                      |
 | `cd`     | Change the current directory               |
 | `cls`    | Clear the terminal                         |
+| `date`   | Display the current date and time          |
+| `echo`   | Print or write text                        |
+| `help`   | Display command help                       |
+| `host`   | Display the hostname                       |
+| `pwd`    | Display the current directory              |
+| `trm`    | Clear and refresh the terminal             |
+| `which`  | Find the path of a command                 |
+| `whoami` | Display the current username               |
+
+### 📁 File Management
+
+| Command  | Description                                |
+| -------- | ------------------------------------------ |
+| `cat`    | Display file contents                      |
 | `cp`     | Copy files and directories                 |
 | `crt`    | Create files and directories               |
-| `date`   | Display the current date and time          |
-| `echo`   | Print text and write content               |
 | `find`   | Find files and directories                 |
 | `grep`   | Search text inside files or command output |
 | `head`   | Display the first lines of input or files  |
-| `help`   | Display command help                       |
-| `host`   | Display the hostname                       |
-| `hwinfo` | Display hardware information               |
 | `ls`     | List files and directories                 |
 | `mkdir`  | Create a directory                         |
+| `mte`    | Open the Midnight Text Editor              |
 | `mv`     | Move files and directories                 |
-| `pwd`    | Display the current directory              |
 | `rem`    | Rename files and directories               |
 | `rm`     | Remove files and directories               |
 | `stat`   | Display file or directory information      |
 | `tail`   | Display the last lines of input or files   |
 | `tree`   | Display a directory as a tree              |
-| `trm`    | Clear and refresh the terminal             |
-| `which`  | Find the path of a command                 |
-| `whoami` | Display the current username               |
-| `mte`    | Open the Midnight Text Editor              |
+
+### 🤖 AI & Hardware
+
+| Command  | Description                                |
+| -------- | ------------------------------------------ |
+| `ai`     | Ask an AI model a question                 |
+| `hwinfo` | Display hardware information               |
 
 > Some commands and features are still under development.
 
