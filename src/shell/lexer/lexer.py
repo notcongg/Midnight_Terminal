@@ -1,50 +1,25 @@
 """
 lexer.py
 
-Converts a raw shell input string into a flat list of Token objects.
-
-Explicitly implemented as a character-by-character state machine per the
-architecture spec -- str.split() is never used. This is required because
-str.split() cannot correctly handle quoted strings containing spaces,
-escape sequences, or operators that are not surrounded by whitespace
-(e.g. `echo hi>out.txt` must tokenize as ['echo', 'hi', '>', 'out.txt']
-even with zero spaces around `>`).
+Converts raw shell input into a flat list of Token objects.
 
 Supported syntax:
+
 - Whitespace-separated words.
-- Single quotes ' ... ' : contents are taken completely literally (no
-  escape processing inside single quotes -- this matches POSIX sh
-  behavior, where backslash has no special meaning inside single
-  quotes).
-- Double quotes " ... " : contents are taken literally except that a
-  backslash can still escape a double quote or another backslash
-  (`"say \"hi\""` -> `say "hi"`). This mirrors common shell double-quote
-  escaping without implementing full POSIX double-quote semantics
-  (which also treats $ and ` specially -- out of scope here, as this
-  shell has no variable/command substitution).
-- Backslash escape (\\) outside quotes: escapes the next character
-  literally, e.g. a backslash followed by a pipe character becomes the
-  literal character `|` instead of the pipe operator, a backslash
-  followed by a space becomes a literal space that does not split the
-  token, etc.
-- Operators: |, >, >>, < . These are recognized even when directly
-  adjacent to a word with no surrounding whitespace, since operators
-  always terminate the current word token.
+- Single quotes: '...'
+  Everything inside is literal.
+- Double quotes: "..."
+  Backslash may escape '"' or '\\'.
+- Backslash escapes outside quotes.
+- Operators: |, >, >>, <
+- Operators may be adjacent to words.
 
-Output tokens are plain, unquoted, unescaped strings tagged with a
-TokenType so the parser can distinguish an operator token (e.g. the two
-characters `>` `>`) from a word token that happens to contain the same
-characters (e.g. a quoted argument `">"`).
+Windows compatibility:
 
-Windows path note: because backslash is this shell's escape character
-(as in POSIX sh), an unquoted Windows-style path typed with backslash
-separators will have each backslash consumed as an escape character
-rather than preserved literally -- this matches how bash/sh also treat
-unquoted Windows-style paths, but it means Windows users should wrap
-such a path in single quotes to get it verbatim, since single-quoted
-content is never escape-processed (see _scan_single_quoted below).
-Forward slashes are unaffected either way, since they carry no special
-meaning to this lexer.
+- A trailing '\\' is treated as a literal path separator instead of
+  a dangling escape.
+- Backslash escaping behavior is otherwise preserved for compatibility
+  with the existing shell syntax.
 """
 
 from __future__ import annotations
@@ -56,21 +31,25 @@ from src.shell.errors.errors import LexerError
 
 
 class TokenType(Enum):
-    WORD = auto()  # command name or argument (already unquoted/unescaped)
-    PIPE = auto()  # |
-    GT = auto()  # >
-    APPEND = auto()  # >>
-    LT = auto()  # <
+    WORD = auto()
+    PIPE = auto()
+    GT = auto()
+    APPEND = auto()
+    LT = auto()
 
 
 @dataclass
 class Token:
     type: TokenType
     value: str
-    position: int  # index into the original input where this token started
+    position: int
 
-    def __repr__(self) -> str:  # pragma: no cover - debug convenience
-        return f"Token({self.type.name}, {self.value!r}, pos={self.position})"
+    def __repr__(self) -> str:
+        return (
+            f"Token({self.type.name}, "
+            f"{self.value!r}, "
+            f"pos={self.position})"
+        )
 
 
 class _Scanner:
@@ -79,13 +58,15 @@ class _Scanner:
     def __init__(self, text: str) -> None:
         self.text = text
         self.length = len(text)
-        self.i = 0  # current index
+        self.i = 0
 
     def eof(self) -> bool:
         return self.i >= self.length
 
     def peek(self) -> str | None:
-        return None if self.eof() else self.text[self.i]
+        if self.eof():
+            return None
+        return self.text[self.i]
 
     def advance(self) -> str:
         ch = self.text[self.i]
@@ -95,155 +76,293 @@ class _Scanner:
 
 def tokenize(raw_input: str) -> list[Token]:
     """
-    Tokenize a raw shell input string into a list of Token objects.
+    Tokenize a raw shell input string into Token objects.
 
-    Raises LexerError on unterminated quotes or a trailing (dangling)
-    escape character.
+    Raises LexerError on unterminated quotes.
+
+    A trailing backslash is preserved literally so Windows paths such as:
+
+        cd Desktop\\
+        cd C:\\
+        cd C:\\Users\\Congg\\
+
+    remain valid shell words.
     """
+
     scanner = _Scanner(raw_input)
     tokens: list[Token] = []
 
     while True:
         _skip_unquoted_whitespace(scanner)
+
         if scanner.eof():
             break
 
         start_pos = scanner.i
         ch = scanner.peek()
 
+        # Pipe
         if ch == "|":
             scanner.advance()
-            tokens.append(Token(TokenType.PIPE, "|", start_pos))
+            tokens.append(
+                Token(
+                    TokenType.PIPE,
+                    "|",
+                    start_pos,
+                )
+            )
             continue
 
+        # Input redirection
         if ch == "<":
             scanner.advance()
-            tokens.append(Token(TokenType.LT, "<", start_pos))
+            tokens.append(
+                Token(
+                    TokenType.LT,
+                    "<",
+                    start_pos,
+                )
+            )
             continue
 
+        # Output redirection
         if ch == ">":
             scanner.advance()
+
             if scanner.peek() == ">":
                 scanner.advance()
-                tokens.append(Token(TokenType.APPEND, ">>", start_pos))
+
+                tokens.append(
+                    Token(
+                        TokenType.APPEND,
+                        ">>",
+                        start_pos,
+                    )
+                )
             else:
-                tokens.append(Token(TokenType.GT, ">", start_pos))
+                tokens.append(
+                    Token(
+                        TokenType.GT,
+                        ">",
+                        start_pos,
+                    )
+                )
+
             continue
 
-        # Otherwise: this begins a WORD token (possibly containing quoted
-        # segments and/or escapes glued together, e.g. foo"bar baz"qux).
+        # WORD
         word_value = _scan_word(scanner)
-        tokens.append(Token(TokenType.WORD, word_value, start_pos))
+
+        tokens.append(
+            Token(
+                TokenType.WORD,
+                word_value,
+                start_pos,
+            )
+        )
 
     return tokens
 
 
 def _skip_unquoted_whitespace(scanner: _Scanner) -> None:
-    while not scanner.eof() and scanner.peek() in (" ", "\t", "\n", "\r"):
+    while (
+        not scanner.eof()
+        and scanner.peek() in (" ", "\t", "\n", "\r")
+    ):
         scanner.advance()
 
 
 def _is_word_terminator(ch: str | None) -> bool:
-    """Characters that end a WORD token when encountered unquoted/unescaped."""
-    return ch is None or ch in (" ", "\t", "\n", "\r", "|", ">", "<")
+    """
+    Characters that terminate a WORD when unquoted/unescaped.
+    """
+
+    return ch is None or ch in (
+        " ",
+        "\t",
+        "\n",
+        "\r",
+        "|",
+        ">",
+        "<",
+    )
 
 
 def _scan_word(scanner: _Scanner) -> str:
     """
-    Scans one WORD token starting at the current position. A single WORD
-    may be composed of multiple adjacent pieces: bare characters, a
-    single-quoted segment, a double-quoted segment, and/or escaped
-    characters -- all concatenated with quotes stripped and escapes
-    resolved. Scanning stops at unescaped whitespace or an unescaped
-    operator character.
+    Scan one WORD token.
+
+    A word may contain:
+
+        bare text
+        'single quoted text'
+        "double quoted text"
+        escaped characters
+
+    All pieces are concatenated.
     """
+
     pieces: list[str] = []
 
     while not scanner.eof():
         ch = scanner.peek()
 
+        # Single quote
         if ch == "'":
-            pieces.append(_scan_single_quoted(scanner))
+            pieces.append(
+                _scan_single_quoted(scanner)
+            )
             continue
 
+        # Double quote
         if ch == '"':
-            pieces.append(_scan_double_quoted(scanner))
+            pieces.append(
+                _scan_double_quoted(scanner)
+            )
             continue
 
+        # Backslash
         if ch == "\\":
-            pieces.append(_scan_escape(scanner))
+            pieces.append(
+                _scan_escape(scanner)
+            )
             continue
 
+        # Word terminator
         if _is_word_terminator(ch):
             break
 
-        pieces.append(scanner.advance())
+        pieces.append(
+            scanner.advance()
+        )
 
     return "".join(pieces)
 
 
 def _scan_single_quoted(scanner: _Scanner) -> str:
     """
-    Consumes a ' ... ' segment. Everything inside is completely literal
-    (no escape processing at all inside single quotes, matching POSIX
-    sh). Raises LexerError if the closing quote is never found.
+    Consume a single-quoted segment.
+
+    Everything inside single quotes is literal.
     """
+
     open_pos = scanner.i
-    scanner.advance()  # consume opening '
+
+    # Opening quote
+    scanner.advance()
+
     chars: list[str] = []
+
     while True:
         if scanner.eof():
-            raise LexerError("Unterminated single quote", position=open_pos)
+            raise LexerError(
+                "Unterminated single quote",
+                position=open_pos,
+            )
+
         ch = scanner.advance()
+
         if ch == "'":
             return "".join(chars)
+
         chars.append(ch)
 
 
 def _scan_double_quoted(scanner: _Scanner) -> str:
     """
-    Consumes a " ... " segment. Backslash retains special meaning only
-    before a double quote or another backslash (\" -> ", \\ -> \\);
-    any other backslash is kept literally along with the following
-    character, since this shell has no variable/command substitution
-    that would otherwise need escaping inside double quotes. Raises
-    LexerError if the closing quote is never found.
+    Consume a double-quoted segment.
+
+    Recognized escapes:
+
+        \\" -> "
+        \\\\ -> \\
+
+    Any other backslash is preserved literally.
     """
+
     open_pos = scanner.i
-    scanner.advance()  # consume opening "
+
+    # Opening quote
+    scanner.advance()
+
     chars: list[str] = []
+
     while True:
         if scanner.eof():
-            raise LexerError("Unterminated double quote", position=open_pos)
+            raise LexerError(
+                "Unterminated double quote",
+                position=open_pos,
+            )
+
         ch = scanner.advance()
+
+        # Closing quote
         if ch == '"':
             return "".join(chars)
+
+        # Backslash
         if ch == "\\":
             nxt = scanner.peek()
+
             if nxt in ('"', "\\"):
-                chars.append(scanner.advance())
+                chars.append(
+                    scanner.advance()
+                )
             else:
-                # Not a recognized double-quote escape: keep the
-                # backslash literally.
+                # Preserve unknown backslash sequences.
                 chars.append(ch)
+
             continue
+
         chars.append(ch)
 
 
 def _scan_escape(scanner: _Scanner) -> str:
     """
-    Consumes a backslash-escape outside of quotes: the backslash is
-    dropped and the following character is taken completely literally
-    (so a backslash followed by a pipe becomes a literal '|' character,
-    a backslash followed by a space becomes a literal space that does
-    not terminate the word, a backslash followed by another backslash
-    becomes a literal single backslash). Raises LexerError if the
-    backslash is the last character of the input.
+    Consume a backslash outside quotes.
+
+    Normal behavior:
+
+        \\| -> |
+        \\  -> space
+        \\\\ -> \\
+
+    Windows compatibility:
+
+        If the backslash is the FINAL character of the input,
+        preserve it literally.
+
+    This specifically allows:
+
+        cd Desktop\\
+        cd C:\\
+        cd C:\\Users\\Congg\\
     """
+
     escape_pos = scanner.i
-    scanner.advance()  # consume backslash
+
+    # Consume '\\'
+    scanner.advance()
+
+    # ---------------------------------------------------------
+    # Windows path compatibility
+    # ---------------------------------------------------------
+    #
+    # A trailing backslash is a valid Windows path separator.
+    #
+    # Example:
+    #
+    #     cd Desktop\
+    #
+    # The old implementation interpreted this as an incomplete
+    # escape sequence and raised:
+    #
+    #     Dangling escape character '\' at end of input
+    #
+    # Preserve it instead.
+    #
     if scanner.eof():
-        raise LexerError(
-            "Dangling escape character '\\' at end of input", position=escape_pos
-        )
+        return "\\"
+
+    # Normal escape behavior.
     return scanner.advance()

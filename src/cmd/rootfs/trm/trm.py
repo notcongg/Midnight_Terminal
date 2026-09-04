@@ -1,7 +1,5 @@
 import os
 import subprocess
-
-from src.ui.banner import print_banner
 from src.shell.context.context import ShellContext
 
 
@@ -12,4 +10,5 @@ def _clear_screen() -> None:
 
 def cmd_trm(args: list[str], context: ShellContext) -> None:
     _clear_screen()
-    print_banner()
+    print("Welcome to Midnight Terminal.")
+    print("[VER 0.000.0012] ALPHA - (c) Congg 2026.")

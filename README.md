@@ -59,6 +59,7 @@ Midnight Terminal is a hobby terminal/shell project focused on learning, experim
 | `trm`    | Clear and refresh the terminal             |
 | `which`  | Find the path of a command                 |
 | `whoami` | Display the current username               |
+| `mte`    | Open the Midnight Text Editor              |
 
 > Some commands and features are still under development.
 
@@ -419,6 +420,7 @@ The shell currently supports:
 * [x] `host`
 * [x] `whoami`
 * [x] `date`
+* [x] `mte`
 
 ### AI
 

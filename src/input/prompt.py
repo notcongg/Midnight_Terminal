@@ -26,12 +26,8 @@ def prompt(
     path: str,
 ) -> str:
     message = HTML(
-        "<username>{}</username>"
-        "<prompt>@</prompt>"
-        "<hostname>{}</hostname>"
-        "<prompt>[</prompt>"
-        "<path>{}</path>"
-        "<prompt>]$ </prompt>"
+        "<username>╭─[{}@{}]─[{}]</username>\n"
+        "<prompt>╰─$ </prompt>"
         .format(username, hostname, path)
     )
 

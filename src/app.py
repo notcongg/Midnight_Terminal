@@ -9,17 +9,21 @@ from src.shell.shell import Shell
 from src.shell.syntax.corrector import correct_command
 from src.shell.syntax.validator import validate
 from src.ui.display_path.dp import display_path
-from src.ui.ui import ui
-
+import os
 
 def run() -> None:
+    os.system('cls')
     load_commands()
 
     shell = Shell()
 
     load_aliases(shell.context)
 
-    ui()
+    ver = "0.000.0013"
+
+    print("Welcome to Midnight Terminal.")
+    print(f"[VERSION {ver}] ALPHA - (c) Congg 2026.")
+    print()
 
     while not shell.context.exit_requested:
         midnight_path = display_path(Path(shell.context.cwd))
