@@ -1,3 +1,4 @@
+
 """
 executor.py
 
@@ -11,6 +12,7 @@ from __future__ import annotations
 import contextlib
 import inspect
 import io
+import time
 from typing import Any, Callable
 
 from src.cmd.utils.registry import COMMANDS
@@ -25,7 +27,6 @@ def _resolve_command(name: str) -> Callable[..., Any]:
         return COMMANDS[name]
     except KeyError as exc:
         message = f"{name}: command not found"
-
         suggestion = format_suggestions(name)
 
         if suggestion:
@@ -89,9 +90,11 @@ def execute(
     '&&', '||' and ';' plus the exit status of the previous pipeline.
 
     Returns the final exit status (0 = success, non-zero = failure).
+
     The status of the last executed pipeline is also stored in
-    `context.last_exit_code` (queryable with `echo $?`).
+    context.last_exit_code (queryable with `echo $?`).
     """
+
     if not sequence.pipelines:
         raise ExecutionError(
             "Cannot execute an empty pipeline"
@@ -99,11 +102,14 @@ def execute(
 
     status = 0
 
-    for index, pipeline in enumerate(sequence.pipelines):
+    for index, pipeline in enumerate(
+        sequence.pipelines
+    ):
         if index > 0:
             connector = sequence.connectors[index - 1]
 
-            # Short-circuit: '&&' requires success, '||' requires failure.
+            # Short-circuit: '&&' requires success,
+            # '||' requires failure.
             if connector == "&&" and status != 0:
                 continue
 
@@ -111,12 +117,14 @@ def execute(
                 continue
 
         try:
-            status = _execute_pipeline(pipeline, context)
+            status = _execute_pipeline(
+                pipeline,
+                context,
+            )
 
         except ShellError as exc:
-            # A failed pipeline does not abort the sequence (';' chains
-            # and '||' recovery depend on this). Report the error the
-            # same way the REPL would, then carry the failure status.
+            # A failed pipeline does not abort the sequence.
+            # ';' chains and '||' recovery depend on this.
             context.stderr.write(f"{exc}\n")
             context.stderr.flush()
             status = 1
@@ -133,21 +141,102 @@ def _execute_pipeline(
     """
     Execute one pipeline (commands connected by '|').
 
-    Returns 0 on success. ShellError (e.g. unknown command) propagates
-    to execute(), which turns it into exit status 1.
+    If the first command is `time`, it wraps the entire pipeline
+    that follows it and measures the total execution time.
+
+    Example:
+
+        time echo hello | grep hello
+
+    measures:
+
+        echo hello | grep hello
+
+    rather than measuring only `echo`.
     """
+
     if not pipeline.commands:
         raise ExecutionError(
             "Cannot execute an empty pipeline"
         )
 
+    commands = pipeline.commands
+
+    # -------------------------------------------------------------
+    # `time` pipeline wrapper
+    # -------------------------------------------------------------
+    #
+    # `time echo hello | grep hello`
+    #
+    # must measure the whole pipeline:
+    #
+    #     echo hello | grep hello
+    #
+    # not just:
+    #
+    #     echo hello
+    #
+    if commands[0].name == "time":
+        time_command = commands[0]
+
+        if not time_command.args:
+            raise ExecutionError(
+                "time: missing command",
+                command_name="time",
+            )
+
+        # Replace:
+        #
+        #     time echo hello | grep hello
+        #
+        # with:
+        #
+        #     echo hello | grep hello
+        #
+        # The redirections attached to `time` belong to the
+        # wrapped command so:
+        #
+        #     time echo hello > output.txt
+        #
+        # still behaves correctly.
+        first_command = Command(
+            name=time_command.args[0],
+            args=time_command.args[1:],
+            redirections=time_command.redirections,
+        )
+
+        wrapped_commands = [
+            first_command,
+            *commands[1:],
+        ]
+
+        wrapped_pipeline = Pipeline(
+            commands=wrapped_commands,
+        )
+
+        started = time.perf_counter()
+
+        try:
+            return _execute_pipeline(
+                wrapped_pipeline,
+                context,
+            )
+
+        finally:
+            elapsed = time.perf_counter() - started
+
+            context.stderr.write(
+                f"[time] {elapsed:.6f}s\n"
+            )
+            context.stderr.flush()
+
     piped_input: str | None = None
 
     for index, command in enumerate(
-        pipeline.commands
+        commands
     ):
         is_last = (
-            index == len(pipeline.commands) - 1
+            index == len(commands) - 1
         )
 
         piped_input = _execute_single_command(
@@ -167,7 +256,53 @@ def _execute_single_command(
     piped_input: str | None,
     is_last: bool,
 ) -> str | None:
-    handler = _resolve_command(command.name)
+    # -------------------------------------------------------------
+    # `time` used inside a pipeline
+    # -------------------------------------------------------------
+    #
+    # Example:
+    #
+    #     echo hello | time grep hello
+    #
+    # In this case `time` measures only the command after it.
+    #
+    # When `time` is the first pipeline command, `_execute_pipeline`
+    # handles it as a wrapper for the entire pipeline.
+    #
+    if command.name == "time":
+        if not command.args:
+            raise ExecutionError(
+                "time: missing command",
+                command_name="time",
+            )
+
+        nested_command = Command(
+            name=command.args[0],
+            args=command.args[1:],
+            redirections=command.redirections,
+        )
+
+        started = time.perf_counter()
+
+        try:
+            return _execute_single_command(
+                nested_command,
+                context=context,
+                piped_input=piped_input,
+                is_last=is_last,
+            )
+
+        finally:
+            elapsed = time.perf_counter() - started
+
+            context.stderr.write(
+                f"[time] {elapsed:.6f}s\n"
+            )
+            context.stderr.flush()
+
+    handler = _resolve_command(
+        command.name
+    )
 
     effective_input = piped_input
 
@@ -209,9 +344,10 @@ def _execute_single_command(
     # Create execution context
     # -------------------------------------------------------------
 
-    exec_context = context.clone_streams_reset()
+    exec_context = (
+        context.clone_streams_reset()
+    )
 
-    # IMPORTANT:
     # Tell commands whether stdin actually comes from
     # a pipeline or input redirection.
     #
@@ -263,6 +399,7 @@ def _execute_single_command(
 
     finally:
         context.cwd = exec_context.cwd
+
         context.exit_requested = (
             exec_context.exit_requested
         )
@@ -285,14 +422,18 @@ def _execute_single_command(
         )
 
     elif captured:
-        output = captured + output
+        output = (
+            captured + output
+        )
 
     # -------------------------------------------------------------
     # Output redirection
     # -------------------------------------------------------------
 
     if output_redirections:
-        redirection = output_redirections[-1]
+        redirection = (
+            output_redirections[-1]
+        )
 
         mode = (
             "a"
@@ -308,10 +449,16 @@ def _execute_single_command(
             ) as file_handle:
 
                 if output is not None:
-                    file_handle.write(output)
+                    file_handle.write(
+                        output
+                    )
 
-                    if not output.endswith("\n"):
-                        file_handle.write("\n")
+                    if not output.endswith(
+                        "\n"
+                    ):
+                        file_handle.write(
+                            "\n"
+                        )
 
         except OSError as exc:
             raise ExecutionError(
@@ -328,10 +475,16 @@ def _execute_single_command(
 
     if is_last:
         if output is not None:
-            context.stdout.write(output)
+            context.stdout.write(
+                output
+            )
 
-            if not output.endswith("\n"):
-                context.stdout.write("\n")
+            if not output.endswith(
+                "\n"
+            ):
+                context.stdout.write(
+                    "\n"
+                )
 
         return None
 

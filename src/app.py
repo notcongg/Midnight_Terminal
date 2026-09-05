@@ -21,10 +21,10 @@ def run() -> None:
 
     load_aliases(shell.context)
 
-    ver = "0.000.0013"
+    ver = "1.000.0000"
 
     print("Welcome to Midnight Terminal.")
-    print(f"[VERSION {ver}] ALPHA - (c) Congg 2026.")
+    print(f"[VERSION {ver}] RELEASE - (c) Congg 2026.")
     print()
 
     while not shell.context.exit_requested:

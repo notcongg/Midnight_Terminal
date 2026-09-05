@@ -622,9 +622,6 @@ The shell currently supports:
 * [x] Streaming
 * [x] Pipeline input
 * [x] AI request/response logging
-* [ ] More AI providers
-* [ ] Improved terminal UI
-
 ---
 
 # 🤝 Contributing
