@@ -1,15 +1,15 @@
 # 🌙 Midnight Terminal
 
 > **Wait.**
->
+
 > It's not a terminal emulator.
->
+
 > It's a shell.
->
+
 > Written in Python.
->
+
 > With native Windows process execution.
->
+
 > For Windows.
 
 Midnight Terminal is a lightweight, customizable **shell environment for Windows**, written primarily in Python.
@@ -30,7 +30,7 @@ At some point, it stopped being "just a terminal project."
 
 ---
 
-## ✨ Features
+# ✨ Features
 
 * 🖥️ Custom terminal interface and prompt
 * ⚡ Automatic command discovery and registration
@@ -49,6 +49,8 @@ At some point, it stopped being "just a terminal project."
 * ⚙️ Configurable shell environment
 * 🔄 Runtime environment reloading with `source`
 * 🛠️ Interactive environment configuration with `enfix`
+* 🔗 Command aliases stored in `.dream` configuration
+* 🔍 Command type and origin inspection
 * 🤖 AI-powered shell command
 * 📝 AI request/response logging
 * ⚡ Native external process execution
@@ -61,30 +63,31 @@ At some point, it stopped being "just a terminal project."
 
 # 🖥️ Shell & System
 
-| Command   | Description                                |
-| --------- | ------------------------------------------ |
-| `alias`   | Create or manage command aliases           |
-| `cd`      | Change the current directory               |
-| `cls`     | Clear the terminal                         |
-| `date`    | Display the current date and time          |
-| `echo`    | Print text                                 |
-| `env`     | Display the shell environment              |
-| `enfix`   | Edit environment configuration             |
-| `help`    | Display command help                       |
-| `history` | Display previously executed commands       |
-| `host`    | Display the hostname                       |
-| `kill`    | Terminate a running process                |
-| `ps`      | Display running processes                  |
-| `pwd`     | Display the current directory              |
-| `set`     | Set an environment variable                |
-| `source`  | Reload the shell environment configuration |
-| `task`    | Manage and inspect system tasks            |
-| `trm`     | Clear and refresh the terminal             |
-| `unset`   | Remove an environment variable             |
-| `wc`      | Count lines, words, and characters         |
-| `which`   | Find the path of a command                 |
-| `whoami`  | Display the current username               |
-| `time`    | Measure the execution time of a command    |
+| Command   | Description                                                          |
+| --------- | -------------------------------------------------------------------- |
+| `alias`   | Create or manage command aliases                                     |
+| `cd`      | Change the current directory                                         |
+| `cls`     | Clear the terminal                                                   |
+| `date`    | Display the current date and time                                    |
+| `echo`    | Print text                                                           |
+| `env`     | Display the shell environment                                        |
+| `enfix`   | Edit environment configuration                                       |
+| `help`    | Display command help                                                 |
+| `history` | Display previously executed commands                                 |
+| `host`    | Display the hostname                                                 |
+| `kill`    | Terminate a running process                                          |
+| `ps`      | Display running processes                                            |
+| `pwd`     | Display the current directory                                        |
+| `set`     | Set an environment variable                                          |
+| `source`  | Reload the shell environment configuration                           |
+| `task`    | Manage and inspect system tasks                                      |
+| `time`    | Measure command execution time                                       |
+| `trm`     | Clear and refresh the terminal                                       |
+| `type`    | Identify whether a command is an alias, builtin, or external command |
+| `unset`   | Remove an environment variable                                       |
+| `wc`      | Count lines, words, and characters                                   |
+| `which`   | Find the path of a command                                           |
+| `whoami`  | Display the current username                                         |
 
 ---
 
@@ -95,6 +98,8 @@ At some point, it stopped being "just a terminal project."
 | `cat`   | Display file contents                      |
 | `cp`    | Copy files and directories                 |
 | `crt`   | Create files and directories               |
+| `df`    | Display filesystem disk usage              |
+| `du`    | Display file and directory disk usage      |
 | `find`  | Find files and directories                 |
 | `grep`  | Search text inside files or command output |
 | `head`  | Display the first lines of input or files  |
@@ -191,6 +196,131 @@ src/data/log/AI_LOG.log
 
 ---
 
+# 🔗 Aliases
+
+Midnight Terminal supports persistent command aliases.
+
+Aliases are stored in:
+
+```text
+src/cmd/rootfs/alias/aliases.dream
+```
+
+The `.dream` format is intentionally simple and shell-oriented.
+
+Example:
+
+```text
+# Midnight Terminal aliases
+
+ll = ls -la
+la = ls -a
+py = python
+gs = git status
+```
+
+Create an alias:
+
+```text
+alias ll = ls -la
+```
+
+List aliases:
+
+```text
+alias
+```
+
+Example:
+
+```text
+ll -> ls -la
+py -> python
+gs -> git status
+```
+
+Use an alias:
+
+```text
+ll
+```
+
+Arguments can also be passed through aliases:
+
+```text
+alias ll = ls
+ll src
+```
+
+This behaves like:
+
+```text
+ls src
+```
+
+Remove an alias:
+
+```text
+unalias ll
+```
+
+Aliases are loaded automatically when Midnight Terminal starts and are persisted to `aliases.dream`.
+
+---
+
+# 🔍 Command Inspection
+
+The `type` command identifies what kind of command Midnight Terminal is dealing with.
+
+Builtin command:
+
+```text
+type ls
+```
+
+```text
+ls is a builtin command
+```
+
+Alias:
+
+```text
+type ll
+```
+
+```text
+ll is an alias for 'ls -la'
+```
+
+External command:
+
+```text
+type python
+```
+
+```text
+python is an external command
+Path: C:\...\python.exe
+```
+
+Unknown command:
+
+```text
+type asdfghjkl
+```
+
+```text
+asdfghjkl: command not found
+```
+
+Multiple commands can be inspected at once:
+
+```text
+type ls cd python node
+```
+
+---
+
 # ⚙️ Environment
 
 Midnight Terminal has its own environment configuration system.
@@ -211,13 +341,9 @@ set $HOST=(cmd.hostname);
 set $PWD=(cmd.pwd);
 
 set $UP1=[
-
 ╭─[$NAME@$HOST]-[$PWD]
-
 ╰─$\~space
-
     set $CURSOR=CURSORSHAPE.BLINKING_BEAM;
-
 ]
 
 set $INPUT.AUTOCOMPLETE=true;
@@ -255,11 +381,8 @@ The `enfix` command can modify environment configuration interactively:
 
 ```text
 enfix UP1=[
-
 > ╭─[$NAME@$HOST]-[$PWD]
-
 > ╰─$\~space
-
 > ]
 ```
 
@@ -302,11 +425,8 @@ A multiline command is stored as a single history entry:
 # 2026-09-05 ...
 
 +enfix test=[
-
 +hello
-
 +world
-
 +]
 ```
 
@@ -383,6 +503,12 @@ Get command help:
 
 ```text
 help
+```
+
+Inspect a command:
+
+```text
+type python
 ```
 
 ---
@@ -478,10 +604,10 @@ Executor
   └── External command
          │
          ▼
-   Python Extensions Wrapper
+  Python Extensions Wrapper
          │
          ▼
-   Native C++ DLL
+  Native C++ DLL
          │
          ▼
      CreateProcessW
@@ -531,11 +657,15 @@ For example:
 src/
 ├── cmd/
 │   ├── rootfs/
+│   │   ├── alias/
 │   │   ├── cd/
 │   │   ├── ls/
 │   │   ├── mv/
 │   │   ├── rm/
 │   │   ├── grep/
+│   │   ├── type/
+│   │   ├── du/
+│   │   ├── df/
 │   │   ├── ai/
 │   │   └── ...
 │   │
@@ -590,6 +720,7 @@ Unknown commands can produce suggestions:
 
 ```text
 gerp: command not found
+
 Did you mean: grep?
 ```
 
@@ -732,6 +863,7 @@ This currently enables Midnight Terminal to execute normal Windows programs and 
 * [x] External command execution
 * [x] Native Windows process bridge
 * [x] Process management
+* [x] Command inspection
 * [ ] More advanced process control
 
 ## Input
@@ -750,8 +882,8 @@ This currently enables Midnight Terminal to execute normal Windows programs and 
 ## Commands
 
 * [x] `alias`
-* [x] `ls`
 * [x] `cd`
+* [x] `ls`
 * [x] `cat`
 * [x] `echo`
 * [x] `mkdir`
@@ -760,6 +892,7 @@ This currently enables Midnight Terminal to execute normal Windows programs and 
 * [x] `crt`
 * [x] `find`
 * [x] `which`
+* [x] `type`
 * [x] `tree`
 * [x] `hwinfo`
 * [x] `cp`
@@ -767,6 +900,8 @@ This currently enables Midnight Terminal to execute normal Windows programs and 
 * [x] `tail`
 * [x] `stat`
 * [x] `grep`
+* [x] `du`
+* [x] `df`
 * [x] `ai`
 * [x] `trm`
 * [x] `host`

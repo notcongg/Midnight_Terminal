@@ -1,33 +1,54 @@
-import json
+from __future__ import annotations
+
 from pathlib import Path
 
 from src.shell.context.context import ShellContext
 
 
-ALIAS_FILE = Path(__file__).resolve().parent / "aliases.json"
+ALIAS_FILE = Path(__file__).resolve().parent / "aliases.dream"
 
 
 def _load_aliases() -> dict[str, str]:
     if not ALIAS_FILE.exists():
         return {}
 
+    aliases: dict[str, str] = {}
+
     try:
         with ALIAS_FILE.open("r", encoding="utf-8") as file:
-            data = json.load(file)
+            for line in file:
+                line = line.strip()
 
-        if not isinstance(data, dict):
-            return {}
+                if not line or line.startswith("#"):
+                    continue
 
-        return {str(name): str(command) for name, command in data.items()}
+                if "=" not in line:
+                    continue
 
-    except (OSError, json.JSONDecodeError):
+                name, command = line.split("=", 1)
+
+                name = name.strip()
+                command = command.strip()
+
+                if not name or not command:
+                    continue
+
+                aliases[name] = command
+
+    except OSError:
         return {}
+
+    return aliases
 
 
 def _save_aliases(aliases: dict[str, str]) -> None:
     try:
         with ALIAS_FILE.open("w", encoding="utf-8") as file:
-            json.dump(aliases, file, indent=4, ensure_ascii=False)
+            file.write("# Midnight Terminal aliases\n\n")
+
+            for name, command in aliases.items():
+                file.write(f"{name} = {command}\n")
+
     except OSError as error:
         print(f"Failed to save aliases: {error}")
 
@@ -63,6 +84,7 @@ def cmd_alias(args: list[str], context: ShellContext) -> None:
 
         for name, command in aliases.items():
             print(f"{name} -> {command}")
+
         return
 
     if len(args) < 3 or args[1] != "=":
@@ -94,4 +116,5 @@ def cmd_unalias(args: list[str], context: ShellContext) -> None:
 
     del aliases[name]
     _save_aliases(aliases)
+
     print(f"Alias '{name}' removed.")
