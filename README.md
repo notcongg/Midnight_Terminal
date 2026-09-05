@@ -84,6 +84,7 @@ At some point, it stopped being "just a terminal project."
 | `wc`      | Count lines, words, and characters         |
 | `which`   | Find the path of a command                 |
 | `whoami`  | Display the current username               |
+| `time`    | Measure the execution time of a command    |
 
 ---
 
@@ -782,6 +783,7 @@ This currently enables Midnight Terminal to execute normal Windows programs and 
 * [x] `set`
 * [x] `unset`
 * [x] `source`
+* [x] `time`
 
 ## AI
 
