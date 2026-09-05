@@ -11,8 +11,11 @@ Supported syntax:
 - Double quotes: "..."
   Backslash may escape '"' or '\\'.
 - Backslash escapes outside quotes.
-- Operators: |, >, >>, <
+- Operators: |, >, >>, <, &&, ||, ;
 - Operators may be adjacent to words.
+- Variable expansion outside quotes and inside double quotes:
+  $VAR, ${VAR}, $? (only when tokenize() is given a ShellContext;
+  single-quoted text is never expanded).
 
 Windows compatibility:
 
@@ -26,8 +29,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, auto
+from typing import TYPE_CHECKING
+from src.shell.lexer.prelexer import (
+    prelex,
+    restore_literal_dollars,
+)
 
 from src.shell.errors.errors import LexerError
+
+if TYPE_CHECKING:
+    from src.shell.context.context import ShellContext
 
 
 class TokenType(Enum):
@@ -36,6 +47,9 @@ class TokenType(Enum):
     GT = auto()
     APPEND = auto()
     LT = auto()
+    AND = auto()
+    OR = auto()
+    SEMI = auto()
 
 
 @dataclass
@@ -74,20 +88,15 @@ class _Scanner:
         return ch
 
 
-def tokenize(raw_input: str) -> list[Token]:
+def tokenize(
+    raw_input: str,
+    context: ShellContext | None = None,
+) -> list[Token]:
     """
     Tokenize a raw shell input string into Token objects.
-
-    Raises LexerError on unterminated quotes.
-
-    A trailing backslash is preserved literally so Windows paths such as:
-
-        cd Desktop\\
-        cd C:\\
-        cd C:\\Users\\Congg\\
-
-    remain valid shell words.
     """
+
+    raw_input = prelex(raw_input)
 
     scanner = _Scanner(raw_input)
     tokens: list[Token] = []
@@ -101,13 +110,59 @@ def tokenize(raw_input: str) -> list[Token]:
         start_pos = scanner.i
         ch = scanner.peek()
 
-        # Pipe
+        # Logical AND (&&)
+        if ch == "&":
+            scanner.advance()
+
+            if scanner.peek() == "&":
+                scanner.advance()
+                tokens.append(
+                    Token(
+                        TokenType.AND,
+                        "&&",
+                        start_pos,
+                    )
+                )
+                continue
+
+            raise LexerError(
+                "Unexpected '&' "
+                "(background jobs are not supported; "
+                "quote it or use '&&')",
+                position=start_pos,
+            )
+
+        # Pipe / logical OR
         if ch == "|":
+            scanner.advance()
+
+            if scanner.peek() == "|":
+                scanner.advance()
+                tokens.append(
+                    Token(
+                        TokenType.OR,
+                        "||",
+                        start_pos,
+                    )
+                )
+            else:
+                tokens.append(
+                    Token(
+                        TokenType.PIPE,
+                        "|",
+                        start_pos,
+                    )
+                )
+
+            continue
+
+        # Command separator
+        if ch == ";":
             scanner.advance()
             tokens.append(
                 Token(
-                    TokenType.PIPE,
-                    "|",
+                    TokenType.SEMI,
+                    ";",
                     start_pos,
                 )
             )
@@ -150,8 +205,10 @@ def tokenize(raw_input: str) -> list[Token]:
 
             continue
 
-        # WORD
-        word_value = _scan_word(scanner)
+        word_value = _scan_word(
+            scanner,
+            context,
+        )
 
         tokens.append(
             Token(
@@ -160,6 +217,12 @@ def tokenize(raw_input: str) -> list[Token]:
                 start_pos,
             )
         )
+
+    for token in tokens:
+        if token.type is TokenType.WORD:
+            token.value = restore_literal_dollars(
+                token.value
+            )
 
     return tokens
 
@@ -185,19 +248,99 @@ def _is_word_terminator(ch: str | None) -> bool:
         "|",
         ">",
         "<",
+        "&",
+        ";",
     )
 
 
-def _scan_word(scanner: _Scanner) -> str:
+def _is_name_char(ch: str | None) -> bool:
+    """Characters allowed in a variable name after the first one."""
+    return ch is not None and (ch.isalnum() or ch == "_")
+
+
+def _lookup_variable(
+    context: ShellContext,
+    name: str,
+) -> str:
+    """Look up a variable in the session environment ('' when unset)."""
+    return context.environment.get(name, "")
+
+
+def _scan_variable(
+    scanner: _Scanner,
+    context: ShellContext,
+) -> str:
+    """
+    Consume a '$' and the variable reference that follows it.
+
+    Supported forms:
+
+        $NAME     -> environment lookup ('' when unset)
+        ${NAME}   -> same, with explicit braces
+        $?        -> exit status of the previous command
+
+    A '$' not followed by a name or '?' is preserved literally.
+    """
+
+    dollar_pos = scanner.i
+
+    # Consume '$'
+    scanner.advance()
+
+    ch = scanner.peek()
+
+    # Special parameter: exit status of the previous command.
+    if ch == "?":
+        scanner.advance()
+        return str(context.last_exit_code)
+
+    # Braced form: ${NAME}
+    if ch == "{":
+        scanner.advance()
+
+        chars: list[str] = []
+
+        while not scanner.eof() and scanner.peek() != "}":
+            chars.append(scanner.advance())
+
+        if scanner.eof():
+            raise LexerError(
+                "Unterminated variable reference '${'",
+                position=dollar_pos,
+            )
+
+        # Consume '}'
+        scanner.advance()
+
+        return _lookup_variable(context, "".join(chars))
+
+    # Bare form: $NAME
+    if ch is not None and (ch.isalpha() or ch == "_"):
+        chars: list[str] = [scanner.advance()]
+
+        while _is_name_char(scanner.peek()):
+            chars.append(scanner.advance())
+
+        return _lookup_variable(context, "".join(chars))
+
+    # '$' followed by nothing meaningful stays literal.
+    return "$"
+
+
+def _scan_word(
+    scanner: _Scanner,
+    context: ShellContext | None = None,
+) -> str:
     """
     Scan one WORD token.
 
     A word may contain:
 
         bare text
-        'single quoted text'
-        "double quoted text"
+        'single quoted text'   (never expanded)
+        "double quoted text"   (expanded when context is given)
         escaped characters
+        $VAR / ${VAR} / $?     (expanded when context is given)
 
     All pieces are concatenated.
     """
@@ -217,7 +360,7 @@ def _scan_word(scanner: _Scanner) -> str:
         # Double quote
         if ch == '"':
             pieces.append(
-                _scan_double_quoted(scanner)
+                _scan_double_quoted(scanner, context)
             )
             continue
 
@@ -225,6 +368,13 @@ def _scan_word(scanner: _Scanner) -> str:
         if ch == "\\":
             pieces.append(
                 _scan_escape(scanner)
+            )
+            continue
+
+        # Variable expansion (unquoted)
+        if ch == "$" and context is not None:
+            pieces.append(
+                _scan_variable(scanner, context)
             )
             continue
 
@@ -268,7 +418,10 @@ def _scan_single_quoted(scanner: _Scanner) -> str:
         chars.append(ch)
 
 
-def _scan_double_quoted(scanner: _Scanner) -> str:
+def _scan_double_quoted(
+    scanner: _Scanner,
+    context: ShellContext | None = None,
+) -> str:
     """
     Consume a double-quoted segment.
 
@@ -300,11 +453,18 @@ def _scan_double_quoted(scanner: _Scanner) -> str:
         if ch == '"':
             return "".join(chars)
 
+        # Variable expansion inside double quotes
+        if ch == "$" and context is not None:
+            chars.append(
+                _scan_variable(scanner, context)
+            )
+            continue
+
         # Backslash
         if ch == "\\":
             nxt = scanner.peek()
 
-            if nxt in ('"', "\\"):
+            if nxt in ('"', "\\", "$"):
                 chars.append(
                     scanner.advance()
                 )

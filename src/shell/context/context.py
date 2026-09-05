@@ -34,6 +34,8 @@ class ShellContext:
     stdout: TextIO = field(default_factory=lambda: sys.stdout)
     stderr: TextIO = field(default_factory=lambda: sys.stderr)
     exit_requested: bool = False
+    last_exit_code: int = 0
+    previous_cwd: str | None = None
 
     def resolve_path(self, value: str) -> Path:
         target = Path(value).expanduser()
@@ -56,4 +58,6 @@ class ShellContext:
             stdout=self.stdout,
             stderr=self.stderr,
             exit_requested=self.exit_requested,
+            last_exit_code=self.last_exit_code,
+            previous_cwd=self.previous_cwd,
         )

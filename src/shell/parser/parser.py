@@ -1,12 +1,13 @@
 """
 parser.py
 
-Converts a flat list of Token objects (from lexer.py) into a Pipeline AST
+Converts a flat list of Token objects (from lexer.py) into a Sequence AST
 (from ast.py), using straightforward recursive-descent parsing.
 
 Grammar implemented:
 
-    pipeline    := command (PIPE command)
+    sequence    := pipeline (('&&' | '||' | ';') pipeline)*
+    pipeline    := command (PIPE command)*
     command     := WORD word_or_redir*
     word_or_redir := WORD | redirection
     redirection := (GT | APPEND | LT) WORD
@@ -15,17 +16,19 @@ Validation performed (raising ParserError with a clear message):
     - Empty input                              -> "Empty command"
     - Leading pipe            (`| ls`)         -> empty command before '|'
     - Trailing pipe           (`ls |`)         -> empty command after '|'
-    - Consecutive pipes       (`ls || grep x`) -> empty command between '|'
+    - Consecutive pipes       (`ls | | grep x`)-> empty command between '|'
     - Redirection with no operand at all       (`echo >`, `cat <`)
     - Redirection immediately followed by
       another operator instead of a WORD       (`echo > | grep x`)
     - A command segment that contains only
       redirections and no actual command name  (`> out.txt` alone)
+    - Leading/trailing/doubled connectors      (`&& ls`, `ls &&`,
+                                                `ls && && ls`)
 """
 
 from __future__ import annotations
 
-from src.shell.ast.ast import Command, Pipeline, Redirection
+from src.shell.ast.ast import Command, Pipeline, Redirection, Sequence
 from src.shell.errors.errors import ParserError
 from src.shell.lexer.lexer import Token, TokenType
 
@@ -33,6 +36,12 @@ _REDIRECT_TOKEN_TYPES = {
     TokenType.GT: ">",
     TokenType.APPEND: ">>",
     TokenType.LT: "<",
+}
+
+_CONNECTOR_TOKEN_TYPES = {
+    TokenType.AND: "&&",
+    TokenType.OR: "||",
+    TokenType.SEMI: ";",
 }
 
 
@@ -56,26 +65,72 @@ class _TokenStream:
         return tok
 
 
-def parse(tokens: list[Token]) -> Pipeline:
+def parse(tokens: list[Token]) -> Sequence:
     """
-    Parse a token list into a Pipeline AST node.
+    Parse a token list into a Sequence AST node (one or more
+    Pipelines connected by '&&', '||' or ';').
 
     Raises ParserError on any syntactically invalid sequence, including
     (but not limited to) the required cases from the spec:
         | ls      -> empty command before pipe
-        ls |      -> empty command after pipe
-        echo >    -> missing redirection target
-        cat <     -> missing redirection source
+        ls |     -> empty command after pipe
+        echo >   -> missing redirection target
+        cat <    -> missing redirection source
+        ls &&    -> empty command after '&&'
     """
     if not tokens:
         raise ParserError("Empty command")
 
     stream = _TokenStream(tokens)
+
+    pipelines: list[Pipeline] = []
+    connectors: list[str] = []
+
+    # A sequence is one or more pipe-delimited pipelines connected by
+    # '&&', '||' or ';'. We split on connector tokens, validating that
+    # no pipeline is empty (which covers leading/trailing/doubled
+    # connectors uniformly).
+    segment_tokens: list[Token] = []
+
+    while not stream.eof():
+        tok = stream.advance()
+
+        if tok.type in _CONNECTOR_TOKEN_TYPES:
+            if not segment_tokens:
+                raise ParserError(
+                    f"Syntax error: expected a command "
+                    f"before '{tok.value}' (found empty command)"
+                )
+
+            pipelines.append(_parse_pipeline(segment_tokens))
+            connectors.append(_CONNECTOR_TOKEN_TYPES[tok.type])
+            segment_tokens = []
+        else:
+            segment_tokens.append(tok)
+
+    if not segment_tokens:
+        raise ParserError(
+            f"Syntax error: expected a command "
+            f"after '{connectors[-1]}' (found empty command)"
+        )
+
+    pipelines.append(_parse_pipeline(segment_tokens))
+
+    return Sequence(pipelines=pipelines, connectors=connectors)
+
+
+def _parse_pipeline(seg: list[Token]) -> Pipeline:
+    """
+    Parse one connector-delimited segment (a sequence of tokens
+    containing no '&&'/'||'/';' tokens) into a single Pipeline node.
+    """
     commands: list[Command] = []
 
-    # A pipeline is one or more comma-separated (pipe-separated) command
-    # segments. We split on PIPE tokens, validating that no segment is
-    # empty (which covers leading/trailing/consecutive pipes uniformly).
+    # A pipeline is one or more pipe-separated command segments. We
+    # split on PIPE tokens, validating that no segment is empty (which
+    # covers leading/trailing/consecutive pipes uniformly).
+    stream = _TokenStream(seg)
+
     segment_tokens: list[Token] = []
     all_segments: list[list[Token]] = []
 

@@ -1,0 +1,22 @@
+// Common ENV
+set $NAME=(cmd.whoami);
+set $HOST=(cmd.hostname);
+set $HOME=(~/usr/$NAME);
+set $PWD=(cmd.pwd);
+
+// USER PROMPT
+set $UP1=[
+╭─[$NAME@$HOST]-[$PWD]
+╰─$~space
+    set $CURSOR=CURSORSHAPE.BLINKING_BEAM;
+]
+set $UP2='> '
+set $UP3='#? '
+set $UP4='+ '
+
+// INPUT
+set $INPUT.AUTOCOMPLETE=true;
+set $INPUT.HISTORY=true;
+set $INPUT.HISTORY_SIZE=1000;
+set $INPUT.SUGGESTIONS=true;
+set $INPUT.HISTORY_IGNORE_CONSECUTIVE_DUPLICATES=true;

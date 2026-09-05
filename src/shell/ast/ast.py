@@ -88,3 +88,47 @@ class Pipeline:
     """
 
     commands: list[Command] = field(default_factory=list)
+
+
+VALID_CONNECTORS = ("&&", "||", ";")
+
+
+@dataclass
+class Sequence:
+    """
+    One or more Pipelines connected by shell operators:
+
+        pipeline ('&&' pipeline | '||' pipeline | ';' pipeline)*
+
+    pipelines  : left-to-right list of Pipeline nodes.
+    connectors : operator between consecutive pipelines, so
+                 len(connectors) == len(pipelines) - 1.
+                 connectors[i] connects pipelines[i] and pipelines[i+1].
+
+    A "plain" single command line is a Sequence with one Pipeline and
+    no connectors. The executor evaluates the sequence left-to-right:
+
+        '&&' runs the next pipeline only when the previous one succeeded
+        '||' runs the next pipeline only when the previous one failed
+        ';'  always runs the next pipeline
+    """
+
+    pipelines: list[Pipeline] = field(default_factory=list)
+    connectors: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        for connector in self.connectors:
+            if connector not in VALID_CONNECTORS:
+                raise ValueError(
+                    f"Invalid connector {connector!r}; "
+                    f"expected one of {VALID_CONNECTORS}"
+                )
+
+        if self.pipelines and (
+            len(self.connectors) != len(self.pipelines) - 1
+        ):
+            raise ValueError(
+                "Sequence connectors must link consecutive pipelines "
+                f"(got {len(self.pipelines)} pipelines and "
+                f"{len(self.connectors)} connectors)"
+            )

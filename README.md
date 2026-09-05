@@ -2,13 +2,25 @@
 
 A lightweight, customizable terminal environment written in Python.
 
-Midnight Terminal is a hobby terminal/shell project focused on learning, experimentation, and building a custom command-line environment from the ground up.
+> **Wait.**
+>
+> It's not a terminal emulator.
+>
+> It's a shell.
+>
+> Written in Python.
+>
+> **For Windows.**
 
-> **Status:** 🚧 Active Development
+Midnight Terminal is a hobby terminal/shell project focused on learning, experimentation, and building a custom command-line environment from the ground up.
 
 ---
 
 ## ✨ Features
+
+It started as a terminal.
+
+Then things happened.
 
 * 🖥️ Custom terminal interface
 * ⚡ Automatic command discovery and registration
@@ -21,63 +33,84 @@ Midnight Terminal is a hobby terminal/shell project focused on learning, experim
 * ↪️ Input and output redirection
 * 🧠 Command syntax correction and suggestions
 * ⌨️ Interactive command autocomplete
+* 📜 Persistent command history
+* 📝 Multiline command history
+* ⚙️ Configurable shell environment
+* 🔄 Runtime environment reloading with `source`
+* 🛠️ Environment configuration editing with `enfix`
 * 🤖 AI-powered command
 * 📝 AI request/response logging
 * 🌙 Lightweight and extensible architecture
 * 🐍 Built with Python
 
+> At some point, it stopped being just a terminal project.
+
 ---
 
-### 🖥️ Shell & System
+## 🖥️ Shell & System
 
-| Command  | Description                                |
-| -------- | ------------------------------------------ |
-| `alias`  | Create or manage command aliases           |
-| `cd`     | Change the current directory               |
-| `cls`    | Clear the terminal                         |
-| `date`   | Display the current date and time          |
-| `echo`   | Print or write text                        |
-| `help`   | Display command help                       |
-| `host`   | Display the hostname                       |
-| `pwd`    | Display the current directory              |
-| `trm`    | Clear and refresh the terminal             |
-| `which`  | Find the path of a command                 |
-| `whoami` | Display the current username               |
+| Command   | Description                          |
+| --------- | ------------------------------------ |
+| `alias`   | Create or manage command aliases     |
+| `cd`      | Change the current directory         |
+| `cls`     | Clear the terminal                   |
+| `date`    | Display the current date and time    |
+| `echo`    | Print or write text                  |
+| `env`     | Display the shell environment        |
+| `enfix`   | Edit environment configuration       |
+| `help`    | Display command help                 |
+| `history` | Display previously executed commands |
+| `host`    | Display the hostname                 |
+| `kill`    | Terminate a running process          |
+| `ps`      | Display running processes            |
+| `pwd`     | Display the current directory        |
+| `task`    | Manage and inspect system tasks      |
+| `trm`     | Clear and refresh the terminal       |
+| `which`   | Find the path of a command           |
+| `whoami`  | Display the current username         |
 
-### 📁 File Management
+---
 
-| Command  | Description                                |
-| -------- | ------------------------------------------ |
-| `cat`    | Display file contents                      |
-| `cp`     | Copy files and directories                 |
-| `crt`    | Create files and directories               |
-| `find`   | Find files and directories                 |
-| `grep`   | Search text inside files or command output |
-| `head`   | Display the first lines of input or files  |
-| `ls`     | List files and directories                 |
-| `mkdir`  | Create a directory                         |
-| `mte`    | Open the Midnight Text Editor              |
-| `mv`     | Move files and directories                 |
-| `rem`    | Rename files and directories               |
-| `rm`     | Remove files and directories               |
-| `stat`   | Display file or directory information      |
-| `tail`   | Display the last lines of input or files   |
-| `tree`   | Display a directory as a tree              |
+## 📁 File Management
 
-### 🤖 AI & Hardware
+| Command | Description                                |
+| ------- | ------------------------------------------ |
+| `cat`   | Display file contents                      |
+| `cp`    | Copy files and directories                 |
+| `crt`   | Create files and directories               |
+| `find`  | Find files and directories                 |
+| `grep`  | Search text inside files or command output |
+| `head`  | Display the first lines of input or files  |
+| `ls`    | List files and directories                 |
+| `mkdir` | Create a directory                         |
+| `mte`   | Open the Midnight Text Editor              |
+| `mv`    | Move files and directories                 |
+| `rem`   | Rename files and directories               |
+| `rm`    | Remove files and directories               |
+| `stat`  | Display file or directory information      |
+| `tail`  | Display the last lines of input or files   |
+| `tree`  | Display a directory as a tree              |
 
-| Command  | Description                                |
-| -------- | ------------------------------------------ |
-| `ai`     | Ask an AI model a question                 |
-| `hwinfo` | Display hardware information               |
+---
+
+## 🤖 AI & Hardware
+
+| Command  | Description                  |
+| -------- | ---------------------------- |
+| `ai`     | Ask an AI model a question   |
+| `hwinfo` | Display hardware information |
 
 > Some commands and features are still under development.
 
 ---
 
-## 🤖 AI
+# 🤖 AI
 
-Midnight Terminal includes an `ai` command with multiple AI model tiers.
+Yes, the terminal has an AI command.
+
+No, this wasn't part of the original plan.
+
+Midnight Terminal includes an `ai` command with multiple model tiers.
 
 ### Models
 
@@ -89,13 +122,13 @@ Midnight Terminal includes an `ai` command with multiple AI model tiers.
 
 The default model is `fast`.
 
-### Examples
+### Basic usage
 
 ```text
 ai "hello"
 ```
 
-Use a specific model:
+### Choose a model
 
 ```text
 ai --fast "explain this code"
@@ -103,7 +136,7 @@ ai --medium "analyze this architecture"
 ai --deep "find the bug in this code"
 ```
 
-Short model flag:
+### Short model flag
 
 ```text
 ai -m fast "hello"
@@ -111,19 +144,19 @@ ai -m medium "analyze this"
 ai -m deep "debug this"
 ```
 
-Thinking mode:
+### Thinking mode
 
 ```text
 ai --thinking "solve this problem"
 ```
 
-Streaming:
+### Streaming
 
 ```text
 ai --stream "write a short explanation"
 ```
 
-AI can also receive input from a pipeline:
+### And yes, it works with pipelines
 
 ```text
 echo "Hello world" | ai "explain this"
@@ -137,9 +170,101 @@ src/data/log/AI_LOG.log
 
 ---
 
-## 🚀 Installation
+# ⚙️ Environment
 
-### Requirements
+Midnight Terminal has a custom environment configuration system.
+
+Configuration is stored in:
+
+```text
+src/cmd/rootfs/env/envconfig.dream
+```
+
+Example:
+
+```text
+set $NAME=(cmd.whoami);
+set $HOST=(cmd.hostname);
+set $PWD=(cmd.pwd);
+
+set $UP1=[
+╭─[$NAME@$HOST]-[$PWD]
+╰─$~space
+    set $CURSOR=CURSORSHAPE.BLINKING_BEAM;
+]
+
+set $INPUT.AUTOCOMPLETE=true;
+set $INPUT.HISTORY=true;
+set $INPUT.HISTORY_SIZE=1000;
+```
+
+Environment variables can be inspected with:
+
+```text
+env
+```
+
+Changes can be reloaded without restarting the shell:
+
+```text
+source
+```
+
+The `enfix` command can modify environment configuration interactively:
+
+```text
+enfix UP1=[
+> ╭─[$NAME@$HOST]-[$PWD]
+> ╰─$~space
+> ]
+```
+
+Multiline environment values are supported.
+
+---
+
+# 📜 History
+
+Midnight Terminal maintains persistent command history.
+
+History is stored in:
+
+```text
+src/history/.midnight_history
+```
+
+History behavior can be configured through `envconfig.dream`:
+
+```text
+set $INPUT.HISTORY=true;
+set $INPUT.HISTORY_SIZE=1000;
+set $INPUT.HISTORY_IGNORE_CONSECUTIVE_DUPLICATES=true;
+```
+
+Supported history features include:
+
+* Persistent history
+* Configurable history size
+* Consecutive duplicate filtering
+* Multiline command history
+* Automatic history file creation
+* History file rotation
+
+For example, a multiline command is stored as a single history entry:
+
+```text
+# 2026-09-05 ...
++enfix test=[
++hello
++world
++]
+```
+
+---
+
+# 🚀 Installation
+
+## Requirements
 
 * Python 3.12+
 * Windows
@@ -165,9 +290,9 @@ python -m src
 
 ---
 
-## 💻 Usage
+# 💻 Usage
 
-After starting Midnight Terminal, enter a command:
+After starting Midnight Terminal:
 
 ```text
 > ls
@@ -209,43 +334,49 @@ Get help:
 > help
 ```
 
-### Pipelines
+---
 
-Commands can pass their output to another command:
+## 🔗 Pipelines
+
+Commands can pass their output to another command.
 
 ```text
 > echo "Hello world" | grep Hello
+
 Hello world
 ```
 
-Multiple commands can be chained:
+And yes, you can chain them:
 
 ```text
 > echo "Hello world" | grep world | grep Hello
+
 Hello world
 ```
 
-### Redirection
+---
 
-Output can be redirected to a file:
+## ↪️ Redirection
+
+Output:
 
 ```text
 > echo "Hello world" > hello.txt
 ```
 
-Append output:
+Append:
 
 ```text
 > echo "Another line" >> hello.txt
 ```
 
-Read input from a file:
+Input:
 
 ```text
 > cat < hello.txt
 ```
 
-Pipelines and redirection can also be combined:
+Combine everything:
 
 ```text
 > cat error.log | grep ERROR
@@ -253,11 +384,13 @@ Pipelines and redirection can also be combined:
 
 ---
 
-## 🧠 Command Architecture
+# 🧠 Command Architecture
 
-Midnight Terminal uses an automatic command registry.
+Here's where this gets slightly less normal.
 
-Commands are stored inside:
+Midnight Terminal doesn't keep a giant list of commands somewhere and manually register every command.
+
+Commands live inside:
 
 ```text
 src/
@@ -265,35 +398,37 @@ src/
     └── rootfs/
 ```
 
-Each command can be implemented as its own Python module.
-
 For example:
 
 ```text
 src/
-└── cmd/
-    ├── rootfs/
-    │   ├── cd/
-    │   ├── ls/
-    │   ├── mv/
-    │   ├── rm/
-    │   ├── grep/
-    │   ├── ai/
-    │   └── ...
-    │
-    └── utils/
-        └── registry.py
+├── cmd/
+│   ├── rootfs/
+│   │   ├── cd/
+│   │   ├── ls/
+│   │   ├── mv/
+│   │   ├── rm/
+│   │   ├── grep/
+│   │   ├── ai/
+│   │   └── ...
+│   │
+│   └── utils/
+│       └── registry.py
 ```
 
 The command registry automatically discovers command modules and makes them available to the shell.
 
-Commands do not need to be manually registered in a central command list.
+So adding a command does not require editing some central command list.
 
-This makes Midnight Terminal easier to extend as new commands are added.
+Drop the command in.
+
+The registry finds it.
+
+That's it.
 
 ---
 
-## ⌨️ Input System
+# ⌨️ Input System
 
 Midnight Terminal uses `prompt_toolkit` for interactive input.
 
@@ -308,14 +443,15 @@ Current input features include:
 * [x] Command matcher
 * [x] Command suggestions
 * [x] Syntax validator
+* [x] Multiline input
 
-Example:
+For example:
 
 ```text
 > Grep
 ```
 
-can be normalized to:
+can become:
 
 ```text
 grep
@@ -325,15 +461,26 @@ Unknown commands can also produce suggestions:
 
 ```text
 > gerp
+
 gerp: command not found
 Did you mean: grep?
 ```
 
 ---
 
-## 🧩 Shell Architecture
+# 🧩 Shell Architecture
 
-Midnight Terminal separates command processing into multiple stages:
+Now the questionable part.
+
+You type:
+
+```text
+echo "Hello world" | grep world > output.txt
+```
+
+Midnight Terminal does not simply split the string and hope for the best.
+
+The command goes through multiple stages:
 
 ```text
 Input
@@ -377,26 +524,28 @@ The shell currently supports:
 * Command suggestions
 * Command aliases
 
+> Yes, this is still a Python terminal.
+
 ---
 
-## 🗺️ Roadmap
+# 🗺️ Roadmap
 
-### Shell
+## Shell
 
 * [x] Command registry
 * [x] Command aliases
 * [x] File system commands
 * [x] Hardware information
 * [x] Command history
-* [ ] Environment variables
+* [x] Environment variables
 * [x] Command parser
 * [x] Quoted arguments
 * [x] Output redirection
 * [x] Input redirection
 * [x] Pipelines
-* [ ] Process management
+* [x] Process management
 
-### Input
+## Input
 
 * [x] Custom PATH input
 * [x] AutoComplete
@@ -404,8 +553,10 @@ The shell currently supports:
 * [x] Matcher
 * [x] Suggestions
 * [x] Validator
+* [x] Multiline input
+* [x] Persistent history
 
-### Commands
+## Commands
 
 * [x] `alias`
 * [x] `ls`
@@ -431,8 +582,11 @@ The shell currently supports:
 * [x] `whoami`
 * [x] `date`
 * [x] `mte`
+* [x] `env`
+* [x] `enfix`
+* [x] `history`
 
-### AI
+## AI
 
 * [x] AI command
 * [x] Fast model
@@ -448,7 +602,7 @@ The shell currently supports:
 
 ---
 
-## 🤝 Contributing
+# 🤝 Contributing
 
 Contributions are welcome!
 
@@ -466,7 +620,7 @@ You can contribute by:
 
 ---
 
-## 📜 License
+# 📜 License
 
 Midnight Terminal is free software licensed under the:
 
@@ -476,7 +630,7 @@ See [`LICENSE`](LICENSE) for the complete license text.
 
 ---
 
-## 🌙 About
+# 🌙 About
 
 Midnight Terminal is an experimental project created to explore:
 
@@ -496,4 +650,16 @@ The long-term goal is to evolve Midnight Terminal from a simple command-line pro
 
 ---
 
-**Built with Python. Built at midnight. 🌙**
+> **Built with Python.**
+>
+> **Built at midnight. 🌙**
+>
+> *It was supposed to be a terminal.*
+>
+> Yes, it's a shell.
+>
+> Yes, it's written in Python.
+>
+> Yes, it has an AST.
+>
+> **We may have gone too far.**

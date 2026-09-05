@@ -9,6 +9,7 @@ from src.shell.shell import Shell
 from src.shell.syntax.corrector import correct_command
 from src.shell.syntax.validator import validate
 from src.ui.display_path.dp import display_path
+from src.cmd.rootfs.env.env import reload_envconfig
 import os
 
 def run() -> None:
@@ -16,6 +17,7 @@ def run() -> None:
     load_commands()
 
     shell = Shell()
+    reload_envconfig(shell.context)
 
     load_aliases(shell.context)
 

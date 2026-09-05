@@ -1,8 +1,9 @@
 """
 executor.py
 
-Walks a Pipeline AST and executes each Command by dispatching
-through the existing command registry.
+Walks a Sequence AST and executes each Pipeline (left-to-right,
+respecting '&&', '||' and ';' and the exit status of the previous
+pipeline) by dispatching Commands through the existing command registry.
 """
 
 from __future__ import annotations
@@ -13,9 +14,9 @@ import io
 from typing import Any, Callable
 
 from src.cmd.utils.registry import COMMANDS
-from src.shell.ast.ast import Command, Pipeline
+from src.shell.ast.ast import Command, Pipeline, Sequence
 from src.shell.context.context import ShellContext
-from src.shell.errors.errors import ExecutionError
+from src.shell.errors.errors import ExecutionError, ShellError
 from src.shell.syntax.suggestions import format_suggestions
 
 
@@ -80,9 +81,61 @@ def _open_redirect_path(
 
 
 def execute(
+    sequence: Sequence,
+    context: ShellContext,
+) -> int:
+    """
+    Execute a Sequence AST: run its pipelines left-to-right, honoring
+    '&&', '||' and ';' plus the exit status of the previous pipeline.
+
+    Returns the final exit status (0 = success, non-zero = failure).
+    The status of the last executed pipeline is also stored in
+    `context.last_exit_code` (queryable with `echo $?`).
+    """
+    if not sequence.pipelines:
+        raise ExecutionError(
+            "Cannot execute an empty pipeline"
+        )
+
+    status = 0
+
+    for index, pipeline in enumerate(sequence.pipelines):
+        if index > 0:
+            connector = sequence.connectors[index - 1]
+
+            # Short-circuit: '&&' requires success, '||' requires failure.
+            if connector == "&&" and status != 0:
+                continue
+
+            if connector == "||" and status == 0:
+                continue
+
+        try:
+            status = _execute_pipeline(pipeline, context)
+
+        except ShellError as exc:
+            # A failed pipeline does not abort the sequence (';' chains
+            # and '||' recovery depend on this). Report the error the
+            # same way the REPL would, then carry the failure status.
+            context.stderr.write(f"{exc}\n")
+            context.stderr.flush()
+            status = 1
+
+        context.last_exit_code = status
+
+    return status
+
+
+def _execute_pipeline(
     pipeline: Pipeline,
     context: ShellContext,
-) -> None:
+) -> int:
+    """
+    Execute one pipeline (commands connected by '|').
+
+    Returns 0 on success. ShellError (e.g. unknown command) propagates
+    to execute(), which turns it into exit status 1.
+    """
     if not pipeline.commands:
         raise ExecutionError(
             "Cannot execute an empty pipeline"
@@ -103,6 +156,8 @@ def execute(
             piped_input=piped_input,
             is_last=is_last,
         )
+
+    return 0
 
 
 def _execute_single_command(
