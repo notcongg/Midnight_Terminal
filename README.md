@@ -1,7 +1,5 @@
 # 🌙 Midnight Terminal
 
-A lightweight, customizable terminal environment written in Python.
-
 > **Wait.**
 >
 > It's not a terminal emulator.
@@ -10,44 +8,58 @@ A lightweight, customizable terminal environment written in Python.
 >
 > Written in Python.
 >
-> **For Windows.**
+> With native Windows process execution.
+>
+> For Windows.
 
-Midnight Terminal is a hobby terminal/shell project focused on learning, experimentation, and building a custom command-line environment from the ground up.
+Midnight Terminal is a lightweight, customizable **shell environment for Windows**, written primarily in Python.
+
+It started as a small terminal project.
+
+Then it grew a lexer.
+
+Then a parser.
+
+Then an AST.
+
+Then an executor.
+
+Then a native C++ process bridge.
+
+At some point, it stopped being "just a terminal project."
 
 ---
 
 ## ✨ Features
 
-It started as a terminal.
-
-Then things happened.
-
-* 🖥️ Custom terminal interface
+* 🖥️ Custom terminal interface and prompt
 * ⚡ Automatic command discovery and registration
 * 📁 File and directory management
 * 🔎 File and directory searching
 * 💻 Hardware information
-* 🧩 Custom command system
+* 🧩 Extensible command system
 * 🔧 Shell utilities
 * 🔗 Command pipelines
 * ↪️ Input and output redirection
+* ➕ Append redirection
 * 🧠 Command syntax correction and suggestions
 * ⌨️ Interactive command autocomplete
 * 📜 Persistent command history
-* 📝 Multiline command history
+* 📝 Multiline input and history
 * ⚙️ Configurable shell environment
 * 🔄 Runtime environment reloading with `source`
-* 🛠️ Environment configuration editing with `enfix`
-* 🤖 AI-powered command
+* 🛠️ Interactive environment configuration with `enfix`
+* 🤖 AI-powered shell command
 * 📝 AI request/response logging
+* ⚡ Native external process execution
+* 🔌 Python ↔ C++ Windows process bridge
 * 🌙 Lightweight and extensible architecture
-* 🐍 Built with Python
 
 > At some point, it stopped being just a terminal project.
 
 ---
 
-## 🖥️ Shell & System
+# 🖥️ Shell & System
 
 | Command   | Description                                |
 | --------- | ------------------------------------------ |
@@ -55,7 +67,7 @@ Then things happened.
 | `cd`      | Change the current directory               |
 | `cls`     | Clear the terminal                         |
 | `date`    | Display the current date and time          |
-| `echo`    | Print or write text                        |
+| `echo`    | Print text                                 |
 | `env`     | Display the shell environment              |
 | `enfix`   | Edit environment configuration             |
 | `help`    | Display command help                       |
@@ -75,7 +87,7 @@ Then things happened.
 
 ---
 
-## 📁 File Management
+# 📁 File Management
 
 | Command | Description                                |
 | ------- | ------------------------------------------ |
@@ -97,7 +109,7 @@ Then things happened.
 
 ---
 
-## 🤖 AI & Hardware
+# 🤖 AI & Hardware
 
 | Command  | Description                  |
 | -------- | ---------------------------- |
@@ -110,13 +122,13 @@ Then things happened.
 
 # 🤖 AI
 
-Yes, the terminal has an AI command.
+Yes, Midnight Terminal has an AI command.
 
 No, this wasn't part of the original plan.
 
-Midnight Terminal includes an `ai` command with multiple model tiers.
+The `ai` command supports multiple model tiers and can consume pipeline input.
 
-### Models
+## Models
 
 | Tier     | Model                   |
 | -------- | ----------------------- |
@@ -126,41 +138,45 @@ Midnight Terminal includes an `ai` command with multiple model tiers.
 
 The default model is `fast`.
 
-### Basic usage
+## Basic usage
 
 ```text
 ai "hello"
 ```
 
-### Choose a model
+## Choose a model
 
 ```text
 ai --fast "explain this code"
+
 ai --medium "analyze this architecture"
+
 ai --deep "find the bug in this code"
 ```
 
-### Short model flag
+## Short model flag
 
 ```text
 ai -m fast "hello"
+
 ai -m medium "analyze this"
+
 ai -m deep "debug this"
 ```
 
-### Thinking mode
+## Thinking mode
 
 ```text
 ai --thinking "solve this problem"
 ```
 
-### Streaming
+## Streaming
 
 ```text
 ai --stream "write a short explanation"
 ```
 
-### And yes, it works with pipelines
+## Pipeline input
 
 ```text
 echo "Hello world" | ai "explain this"
@@ -176,7 +192,7 @@ src/data/log/AI_LOG.log
 
 # ⚙️ Environment
 
-Midnight Terminal has a custom environment configuration system.
+Midnight Terminal has its own environment configuration system.
 
 Configuration is stored in:
 
@@ -188,39 +204,47 @@ Example:
 
 ```text
 set $NAME=(cmd.whoami);
+
 set $HOST=(cmd.hostname);
+
 set $PWD=(cmd.pwd);
 
 set $UP1=[
+
 ╭─[$NAME@$HOST]-[$PWD]
-╰─$~space
+
+╰─$\~space
+
     set $CURSOR=CURSORSHAPE.BLINKING_BEAM;
+
 ]
 
 set $INPUT.AUTOCOMPLETE=true;
+
 set $INPUT.HISTORY=true;
+
 set $INPUT.HISTORY_SIZE=1000;
 ```
 
-Environment variables can be inspected with:
+Inspect the current environment:
 
 ```text
 env
 ```
 
-Individual variables can be modified with:
+Set a variable:
 
 ```text
 set $NAME=Congg;
 ```
 
-Variables can be removed with:
+Remove a variable:
 
 ```text
 unset $NAME
 ```
 
-Changes can be reloaded without restarting the shell:
+Reload the environment without restarting Midnight:
 
 ```text
 source
@@ -230,8 +254,11 @@ The `enfix` command can modify environment configuration interactively:
 
 ```text
 enfix UP1=[
+
 > ╭─[$NAME@$HOST]-[$PWD]
-> ╰─$~space
+
+> ╰─$\~space
+
 > ]
 ```
 
@@ -253,7 +280,9 @@ History behavior can be configured through `envconfig.dream`:
 
 ```text
 set $INPUT.HISTORY=true;
+
 set $INPUT.HISTORY_SIZE=1000;
+
 set $INPUT.HISTORY_IGNORE_CONSECUTIVE_DUPLICATES=true;
 ```
 
@@ -266,14 +295,17 @@ Supported history features include:
 * Automatic history file creation
 * History file rotation
 
-For example, a multiline command is stored as a single history entry:
+A multiline command is stored as a single history entry:
 
 ```text
 # 2026-09-05 ...
 
 +enfix test=[
+
 +hello
+
 +world
+
 +]
 ```
 
@@ -283,8 +315,9 @@ For example, a multiline command is stored as a single history entry:
 
 ## Requirements
 
-* Python 3.12+
 * Windows
+* Python 3.12+
+* Git
 
 Clone the repository:
 
@@ -312,102 +345,178 @@ python -m src
 After starting Midnight Terminal:
 
 ```text
-> ls
+ls
 ```
 
 Change directories:
 
 ```text
-> cd src
+cd src
 ```
 
 Display a file:
 
 ```text
-> cat README.md
+cat README.md
 ```
 
 Create a file:
 
 ```text
-> crt hello.txt
+crt hello.txt
 ```
 
 Find a file:
 
 ```text
-> find README.md
+find README.md
 ```
 
 Display hardware information:
 
 ```text
-> hwinfo
+hwinfo
 ```
 
-Get help:
+Get command help:
 
 ```text
-> help
+help
 ```
 
 ---
 
-## 🔗 Pipelines
+# 🔗 Pipelines
 
-Commands can pass their output to another command.
+Midnight Terminal supports command pipelines.
 
 ```text
-> echo "Hello world" | grep Hello
+echo "Hello world" | grep Hello
 
 Hello world
 ```
 
-And yes, you can chain them:
+Pipelines can contain multiple commands:
 
 ```text
-> echo "Hello world" | grep world | grep Hello
+echo "Hello world" | grep world | grep Hello
 
 Hello world
 ```
 
----
+Pipelines can also connect built-in commands with external programs.
 
-## ↪️ Redirection
-
-Output:
+For example:
 
 ```text
-> echo "Hello world" > hello.txt
+echo hello | python -c "import sys; print(sys.stdin.read().strip())"
+
+hello
 ```
 
-Append:
-
-```text
-> echo "Another line" >> hello.txt
-```
-
-Input:
-
-```text
-> cat < hello.txt
-```
-
-Combine everything:
-
-```text
-> cat error.log | grep ERROR
-```
+External processes receive pipeline input through the native Midnight Extensions bridge.
 
 ---
 
-# 🧠 Command Architecture
+# ↪️ Redirection
 
-Here's where this gets slightly less normal.
+## Output
 
-Midnight Terminal doesn't keep a giant list of commands somewhere and manually register every command.
+```text
+echo "Hello world" > hello.txt
+```
 
-Commands live inside:
+## Append
+
+```text
+echo "Another line" >> hello.txt
+```
+
+## Input
+
+```text
+cat < hello.txt
+```
+
+## Pipeline + redirection
+
+```text
+cat error.log | grep ERROR
+```
+
+Redirection is handled by the shell executor rather than being delegated entirely to the Windows command shell.
+
+---
+
+# 🔌 Native External Processes
+
+One of Midnight Terminal's more unusual parts is its external process architecture.
+
+Built-in commands are handled directly by the Python command registry.
+
+Unknown commands are passed to the **Midnight Extensions** native process bridge.
+
+The architecture looks roughly like this:
+
+```text
+Shell
+  │
+  ▼
+Lexer / Parser
+  │
+  ▼
+AST
+  │
+  ▼
+Executor
+  │
+  ├── Built-in command
+  │      │
+  │      └── Command Registry
+  │
+  └── External command
+         │
+         ▼
+   Python Extensions Wrapper
+         │
+         ▼
+   Native C++ DLL
+         │
+         ▼
+     CreateProcessW
+         │
+         ├── stdin
+         ├── stdout
+         └── stderr
+```
+
+The native bridge is responsible for Windows process creation and stream handling.
+
+This allows Midnight Terminal to execute programs such as:
+
+```text
+python --version
+```
+
+```text
+node --version
+```
+
+and use them inside pipelines:
+
+```text
+echo hello | python -c "import sys; print(sys.stdin.read())"
+```
+
+The native layer is implemented in C++ and exposed to Python through `ctypes`.
+
+---
+
+# 🧩 Command Architecture
+
+Midnight Terminal does not keep one giant manually maintained command list.
+
+Commands live under:
 
 ```text
 src/
@@ -435,11 +544,11 @@ src/
 
 The command registry automatically discovers command modules and makes them available to the shell.
 
-So adding a command does not require editing some central command list.
+Adding a command therefore does not require editing a huge central command table.
 
-Drop the command in.
+Drop the command into the command tree.
 
-The registry finds it.
+The registry discovers it.
 
 That's it.
 
@@ -451,54 +560,51 @@ Midnight Terminal uses `prompt_toolkit` for interactive input.
 
 Current input features include:
 
-* [x] Custom prompt
-* [x] Command history
-* [x] Command autocomplete
-* [x] Interactive completion menu
-* [x] Syntax correction
-* [x] Case-insensitive command normalization
-* [x] Command matcher
-* [x] Command suggestions
-* [x] Syntax validator
-* [x] Multiline input
-* [x] Persistent history
+* Custom prompt
+* Command history
+* Command autocomplete
+* Interactive completion menu
+* Syntax correction
+* Case-insensitive command normalization
+* Command matching
+* Command suggestions
+* Syntax validation
+* Multiline input
+* Persistent history
+* Configurable cursor style
 
-For example:
+Example:
 
 ```text
-> Grep
+Grep
 ```
 
-can become:
+can be normalized to:
 
 ```text
 grep
 ```
 
-Unknown commands can also produce suggestions:
+Unknown commands can produce suggestions:
 
 ```text
-> gerp
-
 gerp: command not found
 Did you mean: grep?
 ```
 
 ---
 
-# 🧩 Shell Architecture
+# 🧠 Shell Architecture
 
-Now the questionable part.
+Midnight Terminal does not simply split command strings and hope for the best.
 
-You type:
+A command such as:
 
 ```text
 echo "Hello world" | grep world > output.txt
 ```
 
-Midnight Terminal does not simply split the string and hope for the best.
-
-The command goes through multiple stages:
+passes through several stages:
 
 ```text
 Input
@@ -521,28 +627,85 @@ AST
   ▼
 Executor
   │
-  ▼
-Command Registry
+  ├── Built-in
+  │      │
+  │      ▼
+  │   Command Registry
   │
-  ▼
-Command
+  └── External
+         │
+         ▼
+      Extensions
+         │
+         ▼
+      Native DLL
 ```
 
-The shell currently supports:
+The executor is responsible for:
 
-* Command tokenization
-* Quoted arguments
-* Command parsing
-* AST generation
-* Pipelines
+* Command execution
+* Pipeline execution
+* Exit status propagation
+* `&&`
+* `||`
+* `;`
 * Input redirection
 * Output redirection
 * Append redirection
-* Command execution
-* Command suggestions
-* Command aliases
+* Built-in command dispatch
+* External command dispatch
+* Pipeline stdin/stdout flow
+* Command timing through `time`
 
-> Yes, this is still a Python terminal.
+So yes.
+
+This is still a Python shell.
+
+It just happens to have an AST and a native Windows process bridge.
+
+---
+
+# 🔄 Command Status & Operators
+
+Midnight Terminal supports command chaining through:
+
+```text
+&&
+||
+;
+```
+
+Examples:
+
+```text
+python -c "print('ok')" && echo success
+```
+
+```text
+python -c "import sys; sys.exit(1)" || echo fallback
+```
+
+Commands propagate their exit status through the executor.
+
+This allows shell logic to behave more like a traditional command-line environment.
+
+---
+
+# 🛠️ Process Execution
+
+External programs are executed through the Midnight Extensions bridge rather than directly through Python's standard subprocess interface.
+
+The native layer handles:
+
+* Process creation
+* Working directory
+* stdin pipe
+* stdout pipe
+* stderr pipe
+* Exit code
+* Native memory management
+
+This currently enables Midnight Terminal to execute normal Windows programs and integrate them with shell pipelines.
 
 ---
 
@@ -560,12 +723,19 @@ The shell currently supports:
 * [x] Quoted arguments
 * [x] Output redirection
 * [x] Input redirection
+* [x] Append redirection
 * [x] Pipelines
+* [x] `&&`
+* [x] `||`
+* [x] `;`
+* [x] External command execution
+* [x] Native Windows process bridge
 * [x] Process management
+* [ ] More advanced process control
 
 ## Input
 
-* [x] Custom PATH input
+* [x] Custom prompt
 * [x] AutoComplete
 * [x] Syntax Corrector
 * [x] Matcher
@@ -573,6 +743,8 @@ The shell currently supports:
 * [x] Validator
 * [x] Multiline input
 * [x] Persistent history
+* [x] Configurable history
+* [ ] More terminal control features
 
 ## Commands
 
@@ -622,11 +794,24 @@ The shell currently supports:
 * [x] Streaming
 * [x] Pipeline input
 * [x] AI request/response logging
+
+## Native Extensions
+
+* [x] Windows process creation
+* [x] stdout capture
+* [x] stderr capture
+* [x] stdin pipe support
+* [x] Working directory support
+* [x] Exit code reporting
+* [x] Python `ctypes` bridge
+* [ ] More advanced process signaling
+* [ ] More native shell integration
+
 ---
 
 # 🤝 Contributing
 
-Contributions are welcome!
+Contributions are welcome.
 
 Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before submitting changes.
 
@@ -635,9 +820,11 @@ You can contribute by:
 * Adding new commands
 * Fixing bugs
 * Improving the shell
+* Improving the parser or executor
 * Improving documentation
 * Adding tests
 * Improving the terminal UI
+* Improving native Windows integration
 * Suggesting new features
 
 ---
@@ -657,31 +844,38 @@ See [`LICENSE`](LICENSE) for the complete license text.
 Midnight Terminal is an experimental project created to explore:
 
 * Shell architecture
-* Command parsing
 * Lexing and parsing
 * Abstract syntax trees
+* Command execution
 * File systems
 * Windows APIs
+* Native process execution
 * Hardware information
 * Process management
 * Python internals
+* C/C++ integration
 * AI integration
-* Low-level programming concepts
+* Shell environments
+* Terminal input systems
 
-The long-term goal is to evolve Midnight Terminal from a simple command-line project into a more complete and extensible shell environment.
+The long-term goal is to evolve Midnight Terminal from a simple command-line project into a more complete and extensible Windows shell environment.
 
 ---
 
 > **Built with Python.**
 >
+> **Powered by C++ where Windows gets serious.**
+>
 > **Built at midnight. 🌙**
 >
 > *It was supposed to be a terminal.*
 >
-> Yes, it's a shell.
+> *Then it got a lexer.*
 >
-> Yes, it's written in Python.
+> *Then a parser.*
 >
-> Yes, it has an AST.
+> *Then an AST.*
+>
+> *Then an executor.*
 >
 > **We may have gone too far.**

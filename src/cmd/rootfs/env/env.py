@@ -13,12 +13,15 @@ from src.shell.context.context import ShellContext
 
 ENV: dict[str, str] = {}
 
+# Các biến template dành cho Prompt không giải phóng biến lúc parse config
+PROMPT_VARS = {"UP1", "UP2", "UP3", "UP4"}
+
 _VARIABLE = re.compile(r"\$([A-Za-z_][A-Za-z0-9_.]*)")
 _COMMAND = re.compile(r"\(cmd\.([A-Za-z_][A-Za-z0-9_]*)\)")
 
 
 def man_env() -> str:
-    return """ENV(1)                   Midnight Terminal Manual                  ENV(1)
+    return """ENV(1)                  Midnight Terminal Manual                  ENV(1)
 
 NAME
 
@@ -141,7 +144,11 @@ def _store_assignment(
     if not name:
         return
 
-    value = _resolve_value(value.strip(), context)
+    # Giữ nguyên placeholder biến đối với các template Prompt
+    if name in PROMPT_VARS:
+        value = value.strip().replace("~space", " ")
+    else:
+        value = _resolve_value(value.strip(), context)
 
     ENV[name] = value
 
@@ -187,7 +194,12 @@ def _store_multiline(
         value_lines.append(line)
 
     value = "\n".join(value_lines)
-    value = _resolve_value(value, context)
+
+    # Giữ nguyên các biến $PWD, $NAME, $HOST trong template UP1..UP4
+    if name in PROMPT_VARS:
+        value = value.replace("~space", " ")
+    else:
+        value = _resolve_value(value, context)
 
     ENV[name] = value
 
@@ -255,6 +267,7 @@ def _print_env() -> str:
         f"{name}={value}"
         for name, value in ENV.items()
     )
+
 
 def reload_envconfig(context: ShellContext) -> None:
     ENV.clear()
