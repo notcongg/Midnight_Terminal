@@ -49,25 +49,29 @@ Then things happened.
 
 ## 🖥️ Shell & System
 
-| Command   | Description                          |
-| --------- | ------------------------------------ |
-| `alias`   | Create or manage command aliases     |
-| `cd`      | Change the current directory         |
-| `cls`     | Clear the terminal                   |
-| `date`    | Display the current date and time    |
-| `echo`    | Print or write text                  |
-| `env`     | Display the shell environment        |
-| `enfix`   | Edit environment configuration       |
-| `help`    | Display command help                 |
-| `history` | Display previously executed commands |
-| `host`    | Display the hostname                 |
-| `kill`    | Terminate a running process          |
-| `ps`      | Display running processes            |
-| `pwd`     | Display the current directory        |
-| `task`    | Manage and inspect system tasks      |
-| `trm`     | Clear and refresh the terminal       |
-| `which`   | Find the path of a command           |
-| `whoami`  | Display the current username         |
+| Command   | Description                                |
+| --------- | ------------------------------------------ |
+| `alias`   | Create or manage command aliases           |
+| `cd`      | Change the current directory               |
+| `cls`     | Clear the terminal                         |
+| `date`    | Display the current date and time          |
+| `echo`    | Print or write text                        |
+| `env`     | Display the shell environment              |
+| `enfix`   | Edit environment configuration             |
+| `help`    | Display command help                       |
+| `history` | Display previously executed commands       |
+| `host`    | Display the hostname                       |
+| `kill`    | Terminate a running process                |
+| `ps`      | Display running processes                  |
+| `pwd`     | Display the current directory              |
+| `set`     | Set an environment variable                |
+| `source`  | Reload the shell environment configuration |
+| `task`    | Manage and inspect system tasks            |
+| `trm`     | Clear and refresh the terminal             |
+| `unset`   | Remove an environment variable             |
+| `wc`      | Count lines, words, and characters         |
+| `which`   | Find the path of a command                 |
+| `whoami`  | Display the current username               |
 
 ---
 
@@ -204,6 +208,18 @@ Environment variables can be inspected with:
 env
 ```
 
+Individual variables can be modified with:
+
+```text
+set $NAME=Congg;
+```
+
+Variables can be removed with:
+
+```text
+unset $NAME
+```
+
 Changes can be reloaded without restarting the shell:
 
 ```text
@@ -254,6 +270,7 @@ For example, a multiline command is stored as a single history entry:
 
 ```text
 # 2026-09-05 ...
+
 +enfix test=[
 +hello
 +world
@@ -444,6 +461,7 @@ Current input features include:
 * [x] Command suggestions
 * [x] Syntax validator
 * [x] Multiline input
+* [x] Persistent history
 
 For example:
 
@@ -585,6 +603,13 @@ The shell currently supports:
 * [x] `env`
 * [x] `enfix`
 * [x] `history`
+* [x] `ps`
+* [x] `task`
+* [x] `kill`
+* [x] `wc`
+* [x] `set`
+* [x] `unset`
+* [x] `source`
 
 ## AI
 
