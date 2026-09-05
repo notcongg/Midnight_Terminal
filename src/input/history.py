@@ -17,7 +17,7 @@ HISTORY_DIR.mkdir(
     exist_ok=True,
 )
 
-HISTORY_FILE = HISTORY_DIR / ".midnight_history"
+HISTORY_FILE = HISTORY_DIR / "midnight_history.dream"
 
 MAX_HISTORY_FILE_SIZE = 1 * 1024 * 1024  # 1 MB
 MAX_HISTORY_FILES = 3
@@ -200,7 +200,7 @@ def rotate_history() -> None:
 
     oldest = (
         HISTORY_DIR
-        / f".midnight_history.{MAX_HISTORY_FILES}"
+        / f"midnight_history.dream.{MAX_HISTORY_FILES}"
     )
 
     if oldest.exists():
@@ -213,17 +213,17 @@ def rotate_history() -> None:
     ):
         current = (
             HISTORY_DIR
-            / f".midnight_history.{index}"
+            / f"midnight_history.dream.{index}"
         )
 
         if current.exists():
             current.rename(
                 HISTORY_DIR
-                / f".midnight_history.{index + 1}"
+                / f"midnight_history.dream.{index + 1}"
             )
 
     HISTORY_FILE.rename(
-        HISTORY_DIR / ".midnight_history.1"
+        HISTORY_DIR / "midnight_history.dream.1"
     )
 
 

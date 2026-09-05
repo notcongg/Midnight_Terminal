@@ -4,11 +4,24 @@ from collections.abc import Iterable
 
 from prompt_toolkit.completion import Completer, Completion
 
+from src.cmd.rootfs.env.env import ENV
 from src.cmd.utils.registry import COMMANDS
 
 
 class MidnightCompleter(Completer):
-    def get_completions(self, document, complete_event):
+
+    def get_completions(
+        self,
+        document,
+        complete_event,
+    ) -> Iterable[Completion]:
+
+        if ENV.get(
+            "INPUT.AUTOCOMPLETE",
+            "true",
+        ).lower() != "true":
+            return
+
         text = document.text_before_cursor
 
         # Chỉ autocomplete command đầu tiên.

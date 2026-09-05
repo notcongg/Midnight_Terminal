@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src.cmd.rootfs.env.env import ENV
 from src.cmd.utils.registry import COMMANDS
 from src.shell.syntax.matcher import find_matches
 
@@ -12,6 +13,12 @@ def get_suggestions(command: str) -> list[str]:
     """
     Find the closest valid commands for an unknown command.
     """
+
+    if ENV.get(
+        "INPUT.SUGGESTIONS",
+        "true",
+    ).lower() != "true":
+        return []
 
     command = command.strip()
 

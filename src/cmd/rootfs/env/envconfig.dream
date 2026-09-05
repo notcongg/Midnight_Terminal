@@ -1,7 +1,7 @@
 // Common ENV
 set $NAME=(cmd.whoami);
 set $HOST=(cmd.hostname);
-set $HOME=(~/usr/$NAME);
+set $HOME=~/usr/$NAME;
 set $PWD=(cmd.pwd);
 
 // USER PROMPT

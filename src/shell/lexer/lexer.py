@@ -30,12 +30,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import TYPE_CHECKING
+
+from src.cmd.rootfs.env.env import ENV
+from src.shell.errors.errors import LexerError
 from src.shell.lexer.prelexer import (
     prelex,
     restore_literal_dollars,
 )
-
-from src.shell.errors.errors import LexerError
 
 if TYPE_CHECKING:
     from src.shell.context.context import ShellContext
@@ -67,8 +68,6 @@ class Token:
 
 
 class _Scanner:
-    """Internal cursor-based helper walking the raw input one char at a time."""
-
     def __init__(self, text: str) -> None:
         self.text = text
         self.length = len(text)
@@ -92,10 +91,6 @@ def tokenize(
     raw_input: str,
     context: ShellContext | None = None,
 ) -> list[Token]:
-    """
-    Tokenize a raw shell input string into Token objects.
-    """
-
     raw_input = prelex(raw_input)
 
     scanner = _Scanner(raw_input)
@@ -110,7 +105,6 @@ def tokenize(
         start_pos = scanner.i
         ch = scanner.peek()
 
-        # Logical AND (&&)
         if ch == "&":
             scanner.advance()
 
@@ -132,7 +126,6 @@ def tokenize(
                 position=start_pos,
             )
 
-        # Pipe / logical OR
         if ch == "|":
             scanner.advance()
 
@@ -156,9 +149,9 @@ def tokenize(
 
             continue
 
-        # Command separator
         if ch == ";":
             scanner.advance()
+
             tokens.append(
                 Token(
                     TokenType.SEMI,
@@ -166,11 +159,12 @@ def tokenize(
                     start_pos,
                 )
             )
+
             continue
 
-        # Input redirection
         if ch == "<":
             scanner.advance()
+
             tokens.append(
                 Token(
                     TokenType.LT,
@@ -178,9 +172,9 @@ def tokenize(
                     start_pos,
                 )
             )
+
             continue
 
-        # Output redirection
         if ch == ">":
             scanner.advance()
 
@@ -227,19 +221,24 @@ def tokenize(
     return tokens
 
 
-def _skip_unquoted_whitespace(scanner: _Scanner) -> None:
+def _skip_unquoted_whitespace(
+    scanner: _Scanner,
+) -> None:
     while (
         not scanner.eof()
-        and scanner.peek() in (" ", "\t", "\n", "\r")
+        and scanner.peek() in (
+            " ",
+            "\t",
+            "\n",
+            "\r",
+        )
     ):
         scanner.advance()
 
 
-def _is_word_terminator(ch: str | None) -> bool:
-    """
-    Characters that terminate a WORD when unquoted/unescaped.
-    """
-
+def _is_word_terminator(
+    ch: str | None,
+) -> bool:
     return ch is None or ch in (
         " ",
         "\t",
@@ -253,55 +252,57 @@ def _is_word_terminator(ch: str | None) -> bool:
     )
 
 
-def _is_name_char(ch: str | None) -> bool:
-    """Characters allowed in a variable name after the first one."""
-    return ch is not None and (ch.isalnum() or ch == "_")
+def _is_name_char(
+    ch: str | None,
+) -> bool:
+    return (
+        ch is not None
+        and (
+            ch.isalnum()
+            or ch == "_"
+        )
+    )
 
 
 def _lookup_variable(
     context: ShellContext,
     name: str,
 ) -> str:
-    """Look up a variable in the session environment ('' when unset)."""
-    return context.environment.get(name, "")
+    """
+    Look up a variable in Midnight Terminal's ENV.
+
+    envconfig.dream is the source of truth for shell
+    environment variables.
+    """
+    return ENV.get(name, "")
 
 
 def _scan_variable(
     scanner: _Scanner,
     context: ShellContext,
 ) -> str:
-    """
-    Consume a '$' and the variable reference that follows it.
-
-    Supported forms:
-
-        $NAME     -> environment lookup ('' when unset)
-        ${NAME}   -> same, with explicit braces
-        $?        -> exit status of the previous command
-
-    A '$' not followed by a name or '?' is preserved literally.
-    """
-
     dollar_pos = scanner.i
 
-    # Consume '$'
     scanner.advance()
 
     ch = scanner.peek()
 
-    # Special parameter: exit status of the previous command.
     if ch == "?":
         scanner.advance()
         return str(context.last_exit_code)
 
-    # Braced form: ${NAME}
     if ch == "{":
         scanner.advance()
 
         chars: list[str] = []
 
-        while not scanner.eof() and scanner.peek() != "}":
-            chars.append(scanner.advance())
+        while (
+            not scanner.eof()
+            and scanner.peek() != "}"
+        ):
+            chars.append(
+                scanner.advance()
+            )
 
         if scanner.eof():
             raise LexerError(
@@ -309,21 +310,36 @@ def _scan_variable(
                 position=dollar_pos,
             )
 
-        # Consume '}'
         scanner.advance()
 
-        return _lookup_variable(context, "".join(chars))
+        return _lookup_variable(
+            context,
+            "".join(chars),
+        )
 
-    # Bare form: $NAME
-    if ch is not None and (ch.isalpha() or ch == "_"):
-        chars: list[str] = [scanner.advance()]
+    if (
+        ch is not None
+        and (
+            ch.isalpha()
+            or ch == "_"
+        )
+    ):
+        chars: list[str] = [
+            scanner.advance()
+        ]
 
-        while _is_name_char(scanner.peek()):
-            chars.append(scanner.advance())
+        while _is_name_char(
+            scanner.peek()
+        ):
+            chars.append(
+                scanner.advance()
+            )
 
-        return _lookup_variable(context, "".join(chars))
+        return _lookup_variable(
+            context,
+            "".join(chars),
+        )
 
-    # '$' followed by nothing meaningful stays literal.
     return "$"
 
 
@@ -331,54 +347,41 @@ def _scan_word(
     scanner: _Scanner,
     context: ShellContext | None = None,
 ) -> str:
-    """
-    Scan one WORD token.
-
-    A word may contain:
-
-        bare text
-        'single quoted text'   (never expanded)
-        "double quoted text"   (expanded when context is given)
-        escaped characters
-        $VAR / ${VAR} / $?     (expanded when context is given)
-
-    All pieces are concatenated.
-    """
-
     pieces: list[str] = []
 
     while not scanner.eof():
         ch = scanner.peek()
 
-        # Single quote
         if ch == "'":
             pieces.append(
                 _scan_single_quoted(scanner)
             )
             continue
 
-        # Double quote
         if ch == '"':
             pieces.append(
-                _scan_double_quoted(scanner, context)
+                _scan_double_quoted(
+                    scanner,
+                    context,
+                )
             )
             continue
 
-        # Backslash
         if ch == "\\":
             pieces.append(
                 _scan_escape(scanner)
             )
             continue
 
-        # Variable expansion (unquoted)
         if ch == "$" and context is not None:
             pieces.append(
-                _scan_variable(scanner, context)
+                _scan_variable(
+                    scanner,
+                    context,
+                )
             )
             continue
 
-        # Word terminator
         if _is_word_terminator(ch):
             break
 
@@ -389,16 +392,11 @@ def _scan_word(
     return "".join(pieces)
 
 
-def _scan_single_quoted(scanner: _Scanner) -> str:
-    """
-    Consume a single-quoted segment.
-
-    Everything inside single quotes is literal.
-    """
-
+def _scan_single_quoted(
+    scanner: _Scanner,
+) -> str:
     open_pos = scanner.i
 
-    # Opening quote
     scanner.advance()
 
     chars: list[str] = []
@@ -422,20 +420,8 @@ def _scan_double_quoted(
     scanner: _Scanner,
     context: ShellContext | None = None,
 ) -> str:
-    """
-    Consume a double-quoted segment.
-
-    Recognized escapes:
-
-        \\" -> "
-        \\\\ -> \\
-
-    Any other backslash is preserved literally.
-    """
-
     open_pos = scanner.i
 
-    # Opening quote
     scanner.advance()
 
     chars: list[str] = []
@@ -449,27 +435,30 @@ def _scan_double_quoted(
 
         ch = scanner.advance()
 
-        # Closing quote
         if ch == '"':
             return "".join(chars)
 
-        # Variable expansion inside double quotes
         if ch == "$" and context is not None:
             chars.append(
-                _scan_variable(scanner, context)
+                _scan_variable(
+                    scanner,
+                    context,
+                )
             )
             continue
 
-        # Backslash
         if ch == "\\":
             nxt = scanner.peek()
 
-            if nxt in ('"', "\\", "$"):
+            if nxt in (
+                '"',
+                "\\",
+                "$",
+            ):
                 chars.append(
                     scanner.advance()
                 )
             else:
-                # Preserve unknown backslash sequences.
                 chars.append(ch)
 
             continue
@@ -477,52 +466,14 @@ def _scan_double_quoted(
         chars.append(ch)
 
 
-def _scan_escape(scanner: _Scanner) -> str:
-    """
-    Consume a backslash outside quotes.
-
-    Normal behavior:
-
-        \\| -> |
-        \\  -> space
-        \\\\ -> \\
-
-    Windows compatibility:
-
-        If the backslash is the FINAL character of the input,
-        preserve it literally.
-
-    This specifically allows:
-
-        cd Desktop\\
-        cd C:\\
-        cd C:\\Users\\Congg\\
-    """
-
+def _scan_escape(
+    scanner: _Scanner,
+) -> str:
     escape_pos = scanner.i
 
-    # Consume '\\'
     scanner.advance()
 
-    # ---------------------------------------------------------
-    # Windows path compatibility
-    # ---------------------------------------------------------
-    #
-    # A trailing backslash is a valid Windows path separator.
-    #
-    # Example:
-    #
-    #     cd Desktop\
-    #
-    # The old implementation interpreted this as an incomplete
-    # escape sequence and raised:
-    #
-    #     Dangling escape character '\' at end of input
-    #
-    # Preserve it instead.
-    #
     if scanner.eof():
         return "\\"
 
-    # Normal escape behavior.
     return scanner.advance()
