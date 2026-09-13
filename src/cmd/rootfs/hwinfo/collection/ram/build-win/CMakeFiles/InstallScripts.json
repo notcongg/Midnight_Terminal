@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/congg/Code/MNFIX/src/cmd/rootfs/hwinfo/collection/ram/build-win/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -51,10 +51,10 @@ src/cmd/rootfs/hwinfo/collection/os.py
 src/cmd/rootfs/hwinfo/collection/ram.py
 src/cmd/rootfs/hwinfo/collection/storage.py
 src/cmd/rootfs/hwinfo/platform/__init__.py
+src/cmd/rootfs/hwinfo/platform/posix.py
 src/cmd/rootfs/hwinfo/platform/powershell.py
 src/cmd/rootfs/hwinfo/platform/win32.py
 src/cmd/rootfs/hwinfo/platform/wmi.py
-src/cmd/rootfs/kill/__init__.py
 src/cmd/rootfs/ls/__init__.py
 src/cmd/rootfs/ls/ls.py
 src/cmd/rootfs/man/man.py
@@ -64,7 +64,7 @@ src/cmd/rootfs/mrdir/mkdir.py
 src/cmd/rootfs/mrdir/rm.py
 src/cmd/rootfs/mte/__init__.py
 src/cmd/rootfs/mte/mte.py
-src/cmd/rootfs/mv/__init__.py
+src/cmd/rootfs/platform/linux/__init__.py
 src/cmd/rootfs/platform/windows/__init__.py
 src/cmd/rootfs/platform/windows/errors.py
 src/cmd/rootfs/platform/windows/filesystem.py
@@ -87,7 +87,6 @@ src/cmd/rootfs/stat/__init__.py
 src/cmd/rootfs/stat/stat.py
 src/cmd/rootfs/tail/__init__.py
 src/cmd/rootfs/tail/tail.py
-src/cmd/rootfs/task/__init__.py
 src/cmd/rootfs/time/time.py
 src/cmd/rootfs/tree/__init__.py
 src/cmd/rootfs/tree/tree.py

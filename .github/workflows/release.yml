@@ -1,0 +1,280 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, e.g. v1.0.1"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    name: Validate release
+    runs-on: ubuntu-latest
+
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+
+    steps:
+      - name: Determine release tag
+        id: release
+        shell: bash
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release tag: $TAG"
+            echo "Expected format: v1.0.1"
+            exit 1
+          fi
+
+          VERSION="${TAG#v}"
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Print release information
+        run: |
+          echo "Release tag: ${{ steps.release.outputs.tag }}"
+          echo "Version: ${{ steps.release.outputs.version }}"
+
+
+  linux:
+    name: Build Linux package
+
+    needs: prepare
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+
+      - name: Compile Python
+        run: python -m compileall -q .
+
+      - name: Build native RAM collector
+        shell: bash
+        run: |
+          if [ -f src/cmd/rootfs/hwinfo/collection/ram/CMakeLists.txt ]; then
+            cmake \
+              -S src/cmd/rootfs/hwinfo/collection/ram \
+              -B build-ram
+
+            cmake --build build-ram --config Release
+          fi
+
+      - name: Create package
+        shell: bash
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+
+          mkdir -p package/MNFIX-${VERSION}-linux
+
+          rsync -a \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="__pycache__" \
+            --exclude="*.pyc" \
+            --exclude="build" \
+            --exclude="build-*" \
+            ./ \
+            package/MNFIX-${VERSION}-linux/
+
+          if [ -d build-ram ]; then
+            mkdir -p package/MNFIX-${VERSION}-linux/native
+            cp -R build-ram/* package/MNFIX-${VERSION}-linux/native/ || true
+          fi
+
+          cd package
+
+          tar \
+            -czf \
+            "MNFIX-${VERSION}-linux.tar.gz" \
+            "MNFIX-${VERSION}-linux"
+
+      - name: Generate checksum
+        shell: bash
+        run: |
+          cd package
+          sha256sum \
+            "MNFIX-${{ needs.prepare.outputs.version }}-linux.tar.gz" \
+            > \
+            "MNFIX-${{ needs.prepare.outputs.version }}-linux.tar.gz.sha256"
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: mnfix-linux
+          path: |
+            package/MNFIX-${{ needs.prepare.outputs.version }}-linux.tar.gz
+            package/MNFIX-${{ needs.prepare.outputs.version }}-linux.tar.gz.sha256
+          retention-days: 7
+
+
+  windows:
+    name: Build Windows package
+
+    needs: prepare
+
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+
+          if (Test-Path "requirements.txt") {
+            python -m pip install -r requirements.txt
+          }
+
+      - name: Compile Python
+        run: python -m compileall -q .
+
+      - name: Build native RAM collector
+        shell: pwsh
+        run: |
+          if (Test-Path "src/cmd/rootfs/hwinfo/collection/ram/CMakeLists.txt") {
+            cmake `
+              -S src/cmd/rootfs/hwinfo/collection/ram `
+              -B build-ram
+
+            cmake --build build-ram --config Release
+          }
+
+      - name: Create package
+        shell: pwsh
+        run: |
+          $version = "${{ needs.prepare.outputs.version }}"
+          $name = "MNFIX-$version-windows"
+
+          New-Item `
+            -ItemType Directory `
+            -Force `
+            -Path "package/$name" | Out-Null
+
+          Get-ChildItem -Force |
+            Where-Object {
+              $_.Name -notin @(
+                ".git",
+                ".github",
+                "__pycache__",
+                "build",
+                "build-ram"
+              )
+            } |
+            Copy-Item `
+              -Destination "package/$name" `
+              -Recurse `
+              -Force
+
+          if (Test-Path "build-ram") {
+            New-Item `
+              -ItemType Directory `
+              -Force `
+              -Path "package/$name/native" | Out-Null
+
+            Copy-Item `
+              -Path "build-ram/*" `
+              -Destination "package/$name/native" `
+              -Recurse `
+              -Force
+          }
+
+          Compress-Archive `
+            -Path "package/$name" `
+            -DestinationPath "package/$name.zip"
+
+      - name: Generate checksum
+        shell: pwsh
+        run: |
+          $version = "${{ needs.prepare.outputs.version }}"
+          $file = "package/MNFIX-$version-windows.zip"
+          $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
+
+          "$hash  MNFIX-$version-windows.zip" |
+            Set-Content "package/MNFIX-$version-windows.zip.sha256"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: mnfix-windows
+          path: |
+            package/MNFIX-${{ needs.prepare.outputs.version }}-windows.zip
+            package/MNFIX-${{ needs.prepare.outputs.version }}-windows.zip.sha256
+          retention-days: 7
+
+
+  release:
+    name: Create GitHub Release
+
+    needs:
+      - prepare
+      - linux
+      - windows
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: mnfix-linux
+          path: release
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: mnfix-windows
+          path: release
+
+      - name: Show release files
+        run: |
+          find release -type f -maxdepth 2 -print
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          gh release create "$TAG" \
+            release/* \
+            --title "MNFIX $TAG" \
+            --generate-notes

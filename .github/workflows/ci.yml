@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+
+  pull_request:
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python ${{ matrix.os }} / ${{ matrix.python-version }}
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+
+        python-version:
+          - "3.13"
+          - "3.14"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+
+          if [ -f pyproject.toml ]; then
+            python -m pip install -e .
+          fi
+
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          python -m pip install pytest
+
+      - name: Compile Python
+        run: python -m compileall -q .
+
+      - name: Run tests
+        shell: bash
+        run: |
+          if [ -d tests ]; then
+            pytest -q
+          else
+            echo "No tests directory found."
+          fi
+
+      - name: Import hardware collectors
+        run: |
+          python -c "from src.cmd.rootfs.hwinfo.collection.cpu import collect_cpu"
+          python -c "from src.cmd.rootfs.hwinfo.collection.ram import collect_ram"
+          python -c "from src.cmd.rootfs.hwinfo.collection.storage import collect_storage"
+          python -c "from src.cmd.rootfs.hwinfo.collection.network import collect_network"
+          python -c "from src.cmd.rootfs.hwinfo.collection.gpu import collect_gpu"
+          python -c "from src.cmd.rootfs.hwinfo.collection.monitor import collect_monitors"
+
+      - name: Smoke test collectors
+        run: |
+          python -c "from src.cmd.rootfs.hwinfo.collection.cpu import collect_cpu; print(collect_cpu())"
+          python -c "from src.cmd.rootfs.hwinfo.collection.ram import collect_ram; print(collect_ram())"
+          python -c "from src.cmd.rootfs.hwinfo.collection.storage import collect_storage; print(collect_storage())"
+          python -c "from src.cmd.rootfs.hwinfo.collection.network import collect_network; print(collect_network())"
+
+
+  native-linux:
+    name: Native RAM collector / Linux
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake
+
+      - name: Configure
+        run: |
+          if [ -f src/cmd/rootfs/hwinfo/collection/ram/CMakeLists.txt ]; then
+            cmake \
+              -S src/cmd/rootfs/hwinfo/collection/ram \
+              -B build-linux
+          else
+            echo "RAM CMake project not found."
+            exit 1
+          fi
+
+      - name: Build
+        run: cmake --build build-linux --config Release
+
+
+  native-windows:
+    name: Native RAM collector / Windows
+
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          if (Test-Path "src/cmd/rootfs/hwinfo/collection/ram/CMakeLists.txt") {
+            cmake `
+              -S src/cmd/rootfs/hwinfo/collection/ram `
+              -B build-windows
+          }
+          else {
+            Write-Error "RAM CMake project not found."
+            exit 1
+          }
+
+      - name: Build
+        run: cmake --build build-windows --config Release

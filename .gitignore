@@ -41,3 +41,5 @@ Thumbs.db
 
 # idk
 midnight_terminal.egg-info
+build/
+build_win/
