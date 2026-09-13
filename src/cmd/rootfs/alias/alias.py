@@ -5,56 +5,156 @@ from pathlib import Path
 from src.shell.context.context import ShellContext
 
 
-ALIAS_FILE = Path(__file__).resolve().parent / "aliases.dream"
+def _midconf_path() -> Path:
+    # Canonical config location: src/.midconf.
+    # `mte ~/.midconf` and `mte ~/.midhsty` are resolved to these
+    # files by the mte command (home shortcuts).
+    return Path(__file__).resolve().parents[3] / ".midconf"
 
 
-def _load_aliases() -> dict[str, str]:
-    if not ALIAS_FILE.exists():
-        return {}
+def _read_midconf_lines() -> list[str]:
+    path = _midconf_path()
 
-    aliases: dict[str, str] = {}
+    if not path.exists():
+        return []
 
     try:
-        with ALIAS_FILE.open("r", encoding="utf-8") as file:
-            for line in file:
-                line = line.strip()
-
-                if not line or line.startswith("#"):
-                    continue
-
-                if "=" not in line:
-                    continue
-
-                name, command = line.split("=", 1)
-
-                name = name.strip()
-                command = command.strip()
-
-                if not name or not command:
-                    continue
-
-                aliases[name] = command
-
+        return path.read_text(encoding="utf-8").splitlines()
     except OSError:
-        return {}
-
-    return aliases
+        return []
 
 
-def _save_aliases(aliases: dict[str, str]) -> None:
+def _write_midconf_lines(lines: list[str]) -> None:
+    path = _midconf_path()
+
     try:
-        with ALIAS_FILE.open("w", encoding="utf-8") as file:
-            file.write("# Midnight Terminal aliases\n\n")
-
-            for name, command in aliases.items():
-                file.write(f"{name} = {command}\n")
-
+        path.write_text(
+            "\n".join(lines) + "\n",
+            encoding="utf-8",
+        )
     except OSError as error:
-        print(f"Failed to save aliases: {error}")
+        print(f"Failed to save .midconf: {error}")
+
+
+def _remove_block_comments(text: str) -> str:
+    """Remove /* ... */ block comments."""
+    result = []
+    i = 0
+    in_quote = False
+
+    while i < len(text):
+        ch = text[i]
+
+        if ch == "'":
+            in_quote = not in_quote
+            result.append(ch)
+            i += 1
+            continue
+
+        if not in_quote and ch == "/" and i + 1 < len(text) and text[i + 1] == "*":
+            i += 2
+            while i < len(text) - 1:
+                if text[i] == "*" and text[i + 1] == "/":
+                    i += 2
+                    break
+                i += 1
+            continue
+
+        result.append(ch)
+        i += 1
+
+    return "".join(result)
+
+
+def man_alias() -> str:
+    return """ALIAS(1)                 Midnight Terminal Manual                ALIAS(1)
+
+NAME
+
+    alias - create or manage command aliases
+
+SYNOPSIS
+    alias
+    alias <name> = <command>
+
+DESCRIPTION
+
+    Creates command aliases. Aliases are stored in .midconf.
+
+EXAMPLES
+    alias ll = ls -la
+    alias cls = clear
+    alias
+
+SEE ALSO
+
+    unalias(1), .midconf(5)
+
+"""
+
+
+def man_unalias() -> str:
+    return """UNALIAS(1)               Midnight Terminal Manual              UNALIAS(1)
+
+NAME
+
+    unalias - remove a command alias
+
+SYNOPSIS
+
+    unalias <name>
+
+DESCRIPTION
+
+    Removes an alias from the current session.
+
+EXAMPLES
+
+    unalias ll
+
+SEE ALSO
+
+    alias(1), .midconf(5)
+
+"""
 
 
 def load_aliases(context: ShellContext) -> None:
-    context.aliases = _load_aliases()
+    """
+    Load aliases from .midconf.
+
+    Kept for backward compatibility - aliases are also loaded during
+    _load_midconf in env.py, but this can be used for reloading.
+    """
+    path = _midconf_path()
+
+    if not path.exists():
+        return
+
+    text = path.read_text(encoding="utf-8")
+    text = _remove_block_comments(text)
+
+    for line in text.splitlines():
+        stripped = line.strip()
+
+        if not stripped or not stripped.startswith("alias "):
+            continue
+
+        rest = stripped[6:].strip()
+        name, separator, value = rest.partition("=")
+
+        if not separator:
+            continue
+
+        name = name.strip()
+        value = value.strip()
+
+        # Remove surrounding quotes from value
+        if len(value) >= 2 and value[0] in ("'", '"') and value[-1] == value[0]:
+            value = value[1:-1]
+
+        if name and value:
+            context.aliases[name] = value
 
 
 def expand_alias(command: str, context: ShellContext) -> str:
@@ -99,7 +199,7 @@ def cmd_alias(args: list[str], context: ShellContext) -> None:
         return
 
     aliases[name] = command
-    _save_aliases(aliases)
+    _save_alias_to_midconf(name, command)
 
 
 def cmd_unalias(args: list[str], context: ShellContext) -> None:
@@ -115,6 +215,38 @@ def cmd_unalias(args: list[str], context: ShellContext) -> None:
         return
 
     del aliases[name]
-    _save_aliases(aliases)
+    _remove_alias_from_midconf(name)
 
     print(f"Alias '{name}' removed.")
+
+
+def _save_alias_to_midconf(name: str, command: str) -> None:
+    """Append or update an alias in .midconf."""
+    lines = _read_midconf_lines()
+
+    # Check if alias already exists
+    alias_prefix = f"alias {name}="
+    new_line = f"alias {name}={command}"
+
+    for i, line in enumerate(lines):
+        if line.strip().startswith(alias_prefix):
+            lines[i] = new_line
+            _write_midconf_lines(lines)
+            return
+
+    # Append new alias
+    lines.append(new_line)
+    _write_midconf_lines(lines)
+
+
+def _remove_alias_from_midconf(name: str) -> None:
+    """Remove an alias from .midconf."""
+    lines = _read_midconf_lines()
+    alias_prefix = f"alias {name}="
+
+    new_lines = [
+        line for line in lines
+        if not line.strip().startswith(alias_prefix)
+    ]
+
+    _write_midconf_lines(new_lines)

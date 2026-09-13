@@ -1,9 +1,52 @@
+import platform
 from datetime import datetime
 from pathlib import Path
 
-from src.cmd.rootfs.ls.get_vol_info import get_volume_label, get_volume_serial
 from src.shell.context.context import ShellContext
 from src.ui.display_path.dp import display_path
+
+try:
+    from src.cmd.rootfs.platform.windows.get_vol_info import get_volume_label, get_volume_serial
+except ImportError:
+    # Linux fallback - no volume info available
+    def get_volume_label(p):
+        return ""
+
+    def get_volume_serial(p):
+        return "0000-0000"
+
+
+def man_ls() -> str:
+    return """LS(1)                    Midnight Terminal Manual                   LS(1)
+
+NAME
+
+    ls - list directory contents
+
+SYNOPSIS
+
+    ls [options] [directory]
+
+DESCRIPTION
+
+    Lists files and directories.
+
+OPTIONS
+
+    -a      show hidden files
+    -h      human-readable sizes
+
+EXAMPLES
+
+    ls
+    ls -la
+    ls /home
+
+SEE ALSO
+
+    dir(1), tree(1), find(1), pwd(1)
+
+"""
 
 
 def human_size(size: int) -> str:

@@ -25,7 +25,7 @@ DESCRIPTION
 
     Assigns NAME=value in the Midnight Terminal environment.
 
-    The value is stored in ENV and persisted to envconfig.dream.
+    The value is stored in ENV and persisted to .midconf.
 
     Multiline variables can also be replaced directly.
 
@@ -50,11 +50,9 @@ SEE ALSO
 
 
 def _envconfig_path() -> Path:
-    return (
-        Path(__file__).resolve().parent.parent
-        / "env"
-        / "envconfig.dream"
-    )
+    # Canonical config location: src/.midconf.
+    # See mte home shortcuts for `~/.midconf`.
+    return Path(__file__).resolve().parents[3] / ".midconf"
 
 
 def _find_variable(
@@ -174,7 +172,7 @@ def _write_variable(
 
     if not path.exists():
         raise ValueError(
-            "set: envconfig.dream not found"
+            "set: .midconf not found"
         )
 
     lines = path.read_text(

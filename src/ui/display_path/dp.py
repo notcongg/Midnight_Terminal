@@ -1,14 +1,14 @@
+import platform
 from pathlib import Path
 
+
 def display_path(path):
-    home = Path.home()
+    """
+    Display path in a platform-appropriate format.
 
-    try:
-        rel = path.relative_to(home)
+    Linux: /home/username/Documents
+    Windows: C:\\Users\\username\\Documents
 
-        if rel == Path("."):
-            return f"~/usr/{home.name}"
-
-        return f"~/usr/{home.name}/{rel}".replace("\\", "/")
-    except ValueError:
-        return str(path).replace("\\", "/")
+    Uses real paths, no hardcoded formats.
+    """
+    return str(Path(path).resolve())

@@ -3,6 +3,35 @@ import shutil
 from src.shell.context.context import ShellContext
 
 
+def man_rm() -> str:
+    return """RM(1)                    Midnight Terminal Manual                   RM(1)
+
+NAME
+
+    rm - remove files or directories
+
+SYNOPSIS
+
+    rm <path>...
+    rm -rf <path>...
+
+DESCRIPTION
+
+    Removes files or directories. Use -rf to force removal
+    without confirmation.
+
+EXAMPLES
+
+    rm file.txt
+    rm -rf directory
+
+SEE ALSO
+
+    cp(1), mv(1), mkdir(1)
+
+"""
+
+
 def cmd_rm(args: list[str], context: ShellContext) -> str:
     if not args:
         return ""

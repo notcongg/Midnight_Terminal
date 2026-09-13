@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: midnight-terminal
+Version: 0.1.0
+Summary: A terminal written in Python
+Requires-Python: >=3.12
+License-File: LICENSE
+Requires-Dist: psutil
+Requires-Dist: wmi
+Requires-Dist: colorama
+Requires-Dist: prompt-toolkit
+Requires-Dist: python-dotenv
+Requires-Dist: openai
+Dynamic: license-file

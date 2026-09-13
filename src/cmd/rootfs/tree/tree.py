@@ -9,6 +9,33 @@ from src.shell.errors.errors import ShellError
 from src.cmd.rootfs.ls.ls import human_size
 
 
+def man_tree() -> str:
+    return """TREE(1)                  Midnight Terminal Manual                 TREE(1)
+
+NAME
+
+    tree - display a directory tree
+
+SYNOPSIS
+
+    tree [directory]
+
+DESCRIPTION
+
+    Displays the directory structure as a tree.
+
+EXAMPLES
+
+    tree
+    tree /home/user
+
+SEE ALSO
+
+    ls(1), find(1)
+
+"""
+
+
 def _resolve_target(context: ShellContext, value: str | None) -> Path:
     """Resolve a path against the shell's current working directory."""
 

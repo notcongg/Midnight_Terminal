@@ -6,6 +6,34 @@ from src.cmd.utils.registry import COMMANDS
 from src.shell.context.context import ShellContext
 
 
+def man_type() -> str:
+    return """TYPE(1)                  Midnight Terminal Manual                 TYPE(1)
+
+NAME
+
+    type - identify command type
+
+SYNOPSIS
+
+    type <command>
+
+DESCRIPTION
+
+    Identifies whether a command is a builtin, alias, or external command.
+
+EXAMPLES
+
+    type ls
+    type python
+    type ll
+
+SEE ALSO
+
+    which(1), help(1)
+
+"""
+
+
 def cmd_type(args: list[str], context: ShellContext) -> str:
     if not args:
         return "Usage: type <command>\n"

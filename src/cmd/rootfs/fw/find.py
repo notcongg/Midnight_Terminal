@@ -6,6 +6,35 @@ from pathlib import Path
 from src.shell.context.context import ShellContext
 
 
+def man_find() -> str:
+    return """FIND(1)                  Midnight Terminal Manual                 FIND(1)
+
+NAME
+
+    find - find files and directories
+
+SYNOPSIS
+
+    find <pattern>
+    find <pattern> <directory>
+
+DESCRIPTION
+
+    Searches for files and directories matching the given pattern.
+
+EXAMPLES
+
+    find *.txt
+    find *.py src/
+    find test_*
+
+SEE ALSO
+
+    grep(1), ls(1), tree(1)
+
+"""
+
+
 def cmd_find(args: list[str], context: ShellContext) -> None:
     if not args:
         print("find: missing search pattern")

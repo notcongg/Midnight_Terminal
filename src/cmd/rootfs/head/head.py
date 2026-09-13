@@ -3,6 +3,34 @@ from __future__ import annotations
 from src.shell.context.context import ShellContext
 
 
+def man_head() -> str:
+    return """HEAD(1)                  Midnight Terminal Manual                 HEAD(1)
+
+NAME
+
+    head - display the first lines of input or files
+
+SYNOPSIS
+
+    head [-n <count>] [file...]
+
+DESCRIPTION
+
+    Displays the first 10 lines (or specified count) of input or files.
+
+EXAMPLES
+
+    head file.txt
+    head -n 5 file.txt
+    cat file.txt | head
+
+SEE ALSO
+
+    tail(1), cat(1), more(1)
+
+"""
+
+
 def cmd_head(args: list[str], context: ShellContext) -> str:
     lines_count = 10
     files: list[str] = []

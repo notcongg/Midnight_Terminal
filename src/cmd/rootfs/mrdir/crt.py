@@ -1,6 +1,36 @@
 from src.shell.context.context import ShellContext
 
 
+def man_crt() -> str:
+    return """CRT(1)                   Midnight Terminal Manual                  CRT(1)
+
+NAME
+
+    crt - create files and directories
+
+SYNOPSIS
+
+    crt <name> [destination]
+    crt -p <name> [destination]
+
+DESCRIPTION
+
+    Creates a new file. Use -p to create parent directories
+    if they don't exist.
+
+EXAMPLES
+
+    crt newfile.txt
+    crt newfile.txt /path/to/dir
+    crt -p newfile.txt /path/to/dir
+
+SEE ALSO
+
+    mkdir(1), rm(1), echo(1)
+
+"""
+
+
 def cmd_crt(args: list[str], context: ShellContext) -> str | None:
     if not args:
         return None

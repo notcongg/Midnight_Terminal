@@ -6,6 +6,34 @@ from pathlib import Path
 from src.shell.context.context import ShellContext
 
 
+def man_which() -> str:
+    return """WHICH(1)                 Midnight Terminal Manual                WHICH(1)
+
+NAME
+
+    which - find the path of a command
+
+SYNOPSIS
+
+    which <command>
+
+DESCRIPTION
+
+    Locates an executable in the system PATH.
+
+EXAMPLES
+
+    which python
+    which ls
+    which gcc
+
+SEE ALSO
+
+    type(1), find(1)
+
+"""
+
+
 def cmd_which(args: list[str], context: ShellContext) -> None:
     if not args:
         print("which: missing command")

@@ -5,6 +5,33 @@ import shutil
 from src.shell.context.context import ShellContext
 
 
+def man_cp() -> str:
+    return """CP(1)                    Midnight Terminal Manual                   CP(1)
+
+NAME
+
+    cp - copy files and directories
+
+SYNOPSIS
+
+    cp <source> <destination>
+
+DESCRIPTION
+
+    Copies a file or directory from source to destination.
+
+EXAMPLES
+
+    cp file.txt backup.txt
+    cp -r dir1 dir2
+
+SEE ALSO
+
+    mv(1), rm(1)
+
+"""
+
+
 def cmd_cp(args: list[str], context: ShellContext) -> str:
     if len(args) != 2:
         return "Usage: cp <source> <destination>\n"

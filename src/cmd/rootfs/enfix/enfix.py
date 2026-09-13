@@ -24,7 +24,7 @@ SYNOPSIS
 
 DESCRIPTION
 
-    Changes an existing environment variable in envconfig.dream.
+    Changes an existing environment variable in .midconf.
 
     Multiline variables can be edited directly from the shell.
     The multiline block is replaced while preserving its structure.
@@ -46,11 +46,9 @@ SEE ALSO
 
 
 def _envconfig_path() -> Path:
-    return (
-        Path(__file__).resolve().parent.parent
-        / "env"
-        / "envconfig.dream"
-    )
+    # Canonical config location: src/.midconf.
+    # See mte home shortcuts for `~/.midconf`.
+    return Path(__file__).resolve().parents[3] / ".midconf"
 
 
 def _variable_name(assignment: str) -> str:
@@ -180,7 +178,7 @@ def _write_variable(name: str, value: str) -> None:
     path = _envconfig_path()
 
     if not path.exists():
-        raise ValueError("enfix: envconfig.dream not found")
+        raise ValueError("enfix: .midconf not found")
 
     lines = path.read_text(encoding="utf-8").splitlines()
 

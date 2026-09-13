@@ -3,6 +3,33 @@ from __future__ import annotations
 from src.shell.context.context import ShellContext
 
 
+def man_wc() -> str:
+    return """WC(1)                    Midnight Terminal Manual                   WC(1)
+
+NAME
+
+    wc - count lines, words, and characters
+
+SYNOPSIS
+
+    wc [file...]
+
+DESCRIPTION
+
+    Counts lines, words, and characters in files or stdin.
+
+EXAMPLES
+
+    wc file.txt
+    cat file.txt | wc
+
+SEE ALSO
+
+    cat(1), head(1), tail(1)
+
+"""
+
+
 def _human(value: int) -> str:
     units = ["", "k", "M", "G", "T", "P"]
 

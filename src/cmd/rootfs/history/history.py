@@ -1,9 +1,45 @@
 from pathlib import Path
 
-from src.cmd.rootfs.tail.tail import cmd_tail
+
+path = (
+    Path(__file__).resolve().parents[3]
+    / ".midhsty"
+)
 
 
-path = Path(__file__).resolve().parents[3] / "history" / ".midnight_history"
+def man_history() -> str:
+    return """HISTORY(1)               Midnight Terminal Manual              HISTORY(1)
+
+NAME
+
+    history - display command history
+
+SYNOPSIS
+
+    history
+    history -cmd=<count>
+    history -index=<number>
+
+DESCRIPTION
+
+    Shows previously executed commands.
+
+OPTIONS
+
+    -cmd=<count>    show last <count> commands
+    -index=<number> show command at specific index
+
+EXAMPLES
+
+    history
+    history -cmd=10
+    history -index=5
+
+SEE ALSO
+
+    .midhsty(5)
+
+"""
 
 
 def cmd_history(args, context):
@@ -16,6 +52,9 @@ def cmd_history(args, context):
 
         elif arg.startswith("-index="):
             command_index = int(arg.split("=", 1)[1])
+
+    if not path.exists():
+        return ""
 
     with open(path, "r", encoding="utf-8") as file:
         lines = file.read().splitlines()

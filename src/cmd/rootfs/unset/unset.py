@@ -21,7 +21,7 @@ DESCRIPTION
 
     Removes NAME from the Midnight Terminal environment.
 
-    The variable is also removed from envconfig.dream.
+    The variable is also removed from .midconf.
 
     If NAME is a multiline variable, the entire multiline
     variable is removed.
@@ -42,11 +42,9 @@ SEE ALSO
 
 
 def _envconfig_path() -> Path:
-    return (
-        Path(__file__).resolve().parent.parent
-        / "env"
-        / "envconfig.dream"
-    )
+    # Canonical config location: src/.midconf.
+    # See mte home shortcuts for `~/.midconf`.
+    return Path(__file__).resolve().parents[3] / ".midconf"
 
 
 def _multiline_length(
@@ -74,7 +72,7 @@ def _remove_variable(name: str) -> None:
 
     if not path.exists():
         raise ValueError(
-            "unset: envconfig.dream not found"
+            "unset: .midconf not found"
         )
 
     lines = path.read_text(
@@ -119,7 +117,7 @@ def cmd_unset(
     """
     Execute `unset`.
 
-    Removes variables from ENV and envconfig.dream.
+    Removes variables from ENV and .midconf.
     """
 
     if not args:

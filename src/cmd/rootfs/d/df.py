@@ -4,6 +4,37 @@ import shutil
 from pathlib import Path
 
 
+def man_df() -> str:
+    return """DF(1)                    Midnight Terminal Manual                   DF(1)
+
+NAME
+
+    df - display filesystem disk usage
+
+SYNOPSIS
+
+    df [options]
+
+DESCRIPTION
+
+    Shows disk usage information for mounted filesystems.
+
+OPTIONS
+
+    -h      human-readable sizes
+
+EXAMPLES
+
+    df
+    df -h
+
+SEE ALSO
+
+    du(1), ls(1), stat(1)
+
+"""
+
+
 def _format_size(size: int, human: bool) -> str:
     if not human:
         return str(size)

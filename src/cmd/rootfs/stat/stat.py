@@ -5,6 +5,34 @@ from datetime import datetime
 from src.shell.context.context import ShellContext
 
 
+def man_stat() -> str:
+    return """STAT(1)                  Midnight Terminal Manual                 STAT(1)
+
+NAME
+
+    stat - display file or directory information
+
+SYNOPSIS
+
+    stat <path>...
+
+DESCRIPTION
+
+    Shows detailed information about files or directories including
+    size, permissions, and modification time.
+
+EXAMPLES
+
+    stat file.txt
+    stat /home/user
+
+SEE ALSO
+
+    ls(1), file(1)
+
+"""
+
+
 def cmd_stat(args: list[str], context: ShellContext) -> str:
     if not args:
         return "Usage: stat <file>\n"

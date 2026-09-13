@@ -1,6 +1,33 @@
 from src.shell.context.context import ShellContext
 
 
+def man_cat() -> str:
+    return """CAT(1)                   Midnight Terminal Manual                  CAT(1)
+
+NAME
+
+    cat - display file contents
+
+SYNOPSIS
+
+    cat <file>...
+
+DESCRIPTION
+
+    Reads and displays the contents of one or more files.
+
+EXAMPLES
+
+    cat file.txt
+    cat file1.txt file2.txt
+
+SEE ALSO
+
+    echo(1), head(1), tail(1), type(1)
+
+"""
+
+
 def cmd_cat(args: list[str], context: ShellContext) -> str:
     if not args:
         return context.stdin.read()

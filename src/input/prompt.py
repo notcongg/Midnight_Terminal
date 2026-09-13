@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from textwrap import dedent
-
-from prompt_toolkit import prompt as toolkit_prompt
+from prompt_toolkit import PromptSession
 from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.key_binding import KeyBindings
@@ -19,10 +17,10 @@ from src.input.history import get_history
 
 STYLE = Style.from_dict(
     {
-        "username": "bold",
-        "hostname": "bold",
-        "path": "bold",
-        "prompt": "bold",
+        "username": "#ffffff bold",
+        "hostname": "#ffffff bold",
+        "path": "#ffffff bold",
+        "prompt": "#ffffff bold",
     }
 )
 
@@ -89,7 +87,7 @@ def _prompt_message(
         return HTML(
             (
                 "<username>"
-                f"╭─[{username}@{hostname}]-[{path}]"
+                f"╭─[{username}@{hostname}]"
                 "</username>\n"
                 "<prompt>╰─$ </prompt>"
             )
@@ -209,14 +207,13 @@ def _ctrl_c_bindings() -> KeyBindings:
 def _read_multiline(
     first_line: str,
     history,
+    session: PromptSession,
 ) -> str:
     lines = [first_line]
-
     while True:
-        line = toolkit_prompt(
+        line = session.prompt(
             _continuation_prompt(),
             history=None,
-            style=STYLE,
             cursor=_cursor_shape(),
             completer=MidnightCompleter(),
             key_bindings=_ctrl_c_bindings(),
@@ -256,19 +253,25 @@ def prompt(
 
     history = get_history()
 
-    line = toolkit_prompt(
-        message,
-        history=history,
+    session = PromptSession(
         style=STYLE,
         cursor=_cursor_shape(),
+        history=history,
+    )
+
+    line = session.prompt(
+        message,
         completer=MidnightCompleter(),
         key_bindings=_ctrl_c_bindings(),
+        reserve_space_for_menu=0,
+        complete_while_typing=False,
     )
 
     if _is_multiline_start(line):
         return _read_multiline(
             line,
             history,
+            session,
         )
 
     return line

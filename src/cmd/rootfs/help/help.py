@@ -1,4 +1,30 @@
 
+def man_help() -> str:
+    return """HELP(1)                  Midnight Terminal Manual                 HELP(1)
+
+NAME
+
+    help - display help information
+
+SYNOPSIS
+
+    help
+
+DESCRIPTION
+
+    Shows a summary of all available commands and their usage.
+
+EXAMPLES
+
+    help
+
+SEE ALSO
+
+    man(1)
+
+"""
+
+
 def cmd_help(args):
     print("""
 Midnight Terminal HELP CENTER
@@ -89,7 +115,7 @@ Remove an alias:
 unalias ll
 
 Aliases are stored persistently in:
-src/cmd/rootfs/alias/aliases.dream
+src/.midconf
 
 COMMAND INSPECTION
 type ls
@@ -101,14 +127,20 @@ aliases, external commands, and unknown commands.
 
 ENVIRONMENT
 Configuration:
-src/cmd/rootfs/env/envconfig.dream
+src/.midconf
+
+Edit configuration:
+mte ~/.midconf
 
 Reload configuration:
 source
 
 HISTORY
 History file:
-src/history/.midnight_history
+src/.midhsty
+
+Edit history:
+mte ~/.midhsty
 
 CONFIGURATION
 Midnight Terminal supports configurable:

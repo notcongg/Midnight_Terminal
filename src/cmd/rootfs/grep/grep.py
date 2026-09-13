@@ -4,6 +4,35 @@ from __future__ import annotations
 from src.shell.context.context import ShellContext
 
 
+def man_grep() -> str:
+    return """GREP(1)                  Midnight Terminal Manual                 GREP(1)
+
+NAME
+
+    grep - search text in files or command output
+
+SYNOPSIS
+
+    grep <pattern>
+    grep <pattern> <file>
+
+DESCRIPTION
+
+    Filters lines containing the given pattern from stdin or a file.
+
+EXAMPLES
+
+    grep error logfile.txt
+    ps | grep python
+    cat file.txt | grep keyword
+
+SEE ALSO
+
+    cat(1), find(1), echo(1)
+
+"""
+
+
 def cmd_grep(
     args: list[str],
     context: ShellContext,

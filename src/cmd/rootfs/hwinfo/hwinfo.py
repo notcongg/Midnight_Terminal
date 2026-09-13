@@ -16,6 +16,33 @@ from .collection.storage import collect_storage
 os.system("")
 
 
+def man_hwinfo() -> str:
+    return """HWINFO(1)                Midnight Terminal Manual               HWINFO(1)
+
+NAME
+
+    hwinfo - display hardware information
+
+SYNOPSIS
+
+    hwinfo
+
+DESCRIPTION
+
+    Shows detailed information about the system hardware including
+    CPU, RAM, storage, GPU, network, motherboard and more.
+
+EXAMPLES
+
+    hwinfo
+
+SEE ALSO
+
+    task(1), ps(1), date(1)
+
+"""
+
+
 class SystemAnalyzer:
     def get_os_info(self) -> dict:
         return collect_os()

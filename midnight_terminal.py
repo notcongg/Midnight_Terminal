@@ -4,9 +4,11 @@
 
 from __future__ import annotations
 import os
+import platform
 from src.app import run
 
 
 if __name__ == "__main__":
-    os.system('title Midnight Terminal')
+    if platform.system() == "Windows":
+        os.system("title Midnight Terminal")
     run()

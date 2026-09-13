@@ -18,6 +18,42 @@ from prompt_toolkit.styles import Style
 from src.shell.context.context import ShellContext
 
 
+def man_mte() -> str:
+    return """MTE(1)                   Midnight Terminal Manual                  MTE(1)
+
+NAME
+
+    mte - Midnight Text Editor
+
+SYNOPSIS
+
+    mte <file>
+
+DESCRIPTION
+
+    Opens a full-screen text editor for the given file.
+    The editor supports editing, saving, searching and quitting.
+
+SHORTCUTS
+
+    ^G      help
+    ^O      save (write out)
+    ^W      search
+    ^X      exit
+
+EXAMPLES
+
+    mte notes.txt
+    mte .midconf
+    mte .midhsty
+
+SEE ALSO
+
+    cat(1), echo(1), crt(1)
+
+"""
+
+
 # ============================================================
 # FILE IO
 # ============================================================
@@ -654,6 +690,35 @@ def _run_editor(path: Path) -> bool:
 
 
 # ============================================================
+# HOME SHORTCUTS
+# ============================================================
+
+# `mte ~/.midconf` and `mte ~/.midhsty` are shortcuts for the
+# canonical src files (src/.midconf and src/.midhsty).
+
+
+def _resolve_editor_path(
+    context: ShellContext,
+    value: str,
+) -> Path:
+    name = value.strip().replace("\\", "/").rstrip("/")
+
+    if name in ("~/.midconf", "$HOME/.midconf"):
+        return (
+            Path(__file__).resolve().parents[3]
+            / ".midconf"
+        )
+
+    if name in ("~/.midhsty", "$HOME/.midhsty"):
+        return (
+            Path(__file__).resolve().parents[3]
+            / ".midhsty"
+        )
+
+    return context.resolve_path(value)
+
+
+# ============================================================
 # COMMAND
 # ============================================================
 
@@ -665,8 +730,9 @@ def cmd_mte(
     if not args:
         return "mte: missing file operand"
 
-    path = context.resolve_path(
-        args[0]
+    path = _resolve_editor_path(
+        context,
+        args[0],
     )
 
     try:

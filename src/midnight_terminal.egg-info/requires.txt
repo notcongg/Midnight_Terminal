@@ -1,0 +1,6 @@
+psutil
+wmi
+colorama
+prompt-toolkit
+python-dotenv
+openai

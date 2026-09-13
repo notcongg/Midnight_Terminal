@@ -3,6 +3,34 @@ from __future__ import annotations
 from src.shell.context.context import ShellContext
 
 
+def man_tail() -> str:
+    return """TAIL(1)                  Midnight Terminal Manual                 TAIL(1)
+
+NAME
+
+    tail - display the last lines of input or files
+
+SYNOPSIS
+
+    tail [-n <count>] [file...]
+
+DESCRIPTION
+
+    Displays the last 10 lines (or specified count) of input or files.
+
+EXAMPLES
+
+    tail file.txt
+    tail -n 20 file.txt
+    cat file.txt | tail
+
+SEE ALSO
+
+    head(1), cat(1), more(1)
+
+"""
+
+
 def cmd_tail(args: list[str], context: ShellContext) -> str:
     lines_count = 10
     files: list[str] = []

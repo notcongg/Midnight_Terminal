@@ -3,6 +3,35 @@ from pathlib import Path
 from src.shell.context.context import ShellContext
 
 
+def man_cd() -> str:
+    return """CD(1)                    Midnight Terminal Manual                   CD(1)
+
+NAME
+
+    cd - change the current directory
+
+SYNOPSIS
+
+    cd <path>
+    cd ..
+
+DESCRIPTION
+
+    Changes the current working directory.
+
+EXAMPLES
+
+    cd Documents
+    cd ..
+    cd /home/user
+
+SEE ALSO
+
+    pwd(1), ls(1)
+
+"""
+
+
 def cmd_cd(
     args: list[str],
     context: ShellContext,

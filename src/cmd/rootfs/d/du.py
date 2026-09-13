@@ -5,6 +5,37 @@ from pathlib import Path
 from src.shell.context.context import ShellContext
 
 
+def man_du() -> str:
+    return """DU(1)                    Midnight Terminal Manual                   DU(1)
+
+NAME
+
+    du - display file and directory disk usage
+
+SYNOPSIS
+
+    du [options] [path]
+
+DESCRIPTION
+
+    Shows the disk usage of files and directories.
+
+OPTIONS
+
+    -h      human-readable sizes
+
+EXAMPLES
+
+    du
+    du -h /home/user
+
+SEE ALSO
+
+    df(1), ls(1), stat(1)
+
+"""
+
+
 def _format_size(size: int, human: bool) -> str:
     if not human:
         return str(size)

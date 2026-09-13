@@ -1,9 +1,21 @@
 from __future__ import annotations
 
-from dotenv import load_dotenv
-from openai import OpenAI
-from rich.console import Console
-from rich.status import Status
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+
+try:
+    from rich.console import Console
+    from rich.status import Status
+except ImportError:
+    Console = None
+    Status = None
 
 from src.cmd.rootfs.ai.ai_log import write_ai_log
 from src.cmd.rootfs.ai.models import (
@@ -18,9 +30,41 @@ from src.cmd.rootfs.ai.options import (
 from src.shell.context.context import ShellContext
 
 
-load_dotenv()
+def man_ai() -> str:
+    return """AI(1)                    Midnight Terminal Manual                   AI(1)
 
-console = Console()
+NAME
+
+    ai - ask an AI model a question
+
+SYNOPSIS
+
+    ai <question>
+    ai -m=<model> <question>
+    ai -s <system_prompt> <question>
+
+DESCRIPTION
+
+    Asks a configured AI model a question. Requires an API key
+    configured via environment variables.
+
+EXAMPLES
+
+    ai What is Python?
+    ai -m=gpt-4 Explain recursion
+    echo hello | ai What does this say?
+
+SEE ALSO
+
+    help(1), echo(1)
+
+"""
+
+
+if load_dotenv is not None:
+    load_dotenv()
+
+console = Console() if Console is not None else None
 
 
 def _build_messages(

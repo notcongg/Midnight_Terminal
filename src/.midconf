@@ -1,0 +1,25 @@
+// Common ENV
+set NAME=(cmd.whoami);
+set HOST=(cmd.hostname);
+set HOME=~/usr/$NAME;
+set PWD=;
+
+// USER PROMPT
+set UP1='╭─[$NAME@$HOST]-[$PWD]
+╰─$~space';
+set UP2='> '
+set UP3='#? '
+set UP4='+ ';
+set CURSOR=CURSORSHAPE.BLINKING_BEAM;
+
+// INPUT
+set INPUT.AUTOCOMPLETE=true;
+set INPUT.HISTORY=true;
+set INPUT.HISTORY_SIZE=1000;
+set INPUT.SUGGESTIONS=true;
+set INPUT.HISTORY_IGNORE_CONSECUTIVE_DUPLICATES=true;
+set $A=hello;
+set $B=world;
+alias ll=ls -la
+alias la=ls -a
+alias hi=echo hello
