@@ -5,6 +5,9 @@ from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.styles import Style
+from prompt_toolkit.auto_suggest import (
+    AutoSuggestFromHistory,
+)
 
 from src.cmd.rootfs.env.env import ENV
 from src.input.autocomplete import MidnightCompleter
@@ -70,6 +73,19 @@ def _cursor_shape() -> CursorShape:
         value,
         CursorShape.BLINKING_BEAM,
     )
+
+
+def _auto_suggest() -> AutoSuggestFromHistory | None:
+    """Return an auto-suggestion provider when enabled in .midconf."""
+    if (
+        ENV.get(
+            "INPUT.SUGGESTIONS",
+            "true",
+        ).lower() == "true"
+    ):
+        return AutoSuggestFromHistory()
+
+    return None
 
 
 # ============================================================
@@ -257,6 +273,7 @@ def prompt(
         style=STYLE,
         cursor=_cursor_shape(),
         history=history,
+        auto_suggest=_auto_suggest(),
     )
 
     line = session.prompt(

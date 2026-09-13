@@ -22,6 +22,25 @@ _PLATFORM_WINDOWS_MODULES = {
 }
 
 
+def _register_module_functions(
+    module,
+    source: str,
+) -> None:
+    for name, obj in inspect.getmembers(module, inspect.isfunction):
+        if obj.__module__ != module.__name__:
+            continue
+
+        if name.startswith("man_"):
+            MANUALS[name[4:]] = obj
+            continue
+
+        if not name.startswith("cmd_"):
+            continue
+
+        command_name = name[4:]
+        COMMANDS[command_name] = obj
+
+
 def _get_platform_package() -> str:
     """Get the current platform identifier."""
     system = platform.system().lower()
@@ -59,23 +78,24 @@ def load_commands():
             print(f"[CMD] Failed to load {module_name}: {e}")
             continue
 
-        for name, obj in inspect.getmembers(module, inspect.isfunction):
-            if obj.__module__ != module.__name__:
-                continue
-
-            # Manual pages are associated with the command module that
-            # defines the command itself (man_<name> next to cmd_<name>).
-            if name.startswith("man_"):
-                MANUALS[name[4:]] = obj
-                continue
-
-            if not name.startswith("cmd_"):
-                continue
-
-            command_name = name[4:]
-            COMMANDS[command_name] = obj
+        _register_module_functions(module, module_name)
 
     # Load platform-specific commands
+    if platform_pkg == "linux":
+        # The linux package also exposes the same linux-only commands
+        # via its __init__, so register those when present.
+        try:
+            package_module = importlib.import_module(
+                f"{PACKAGE}.platform.linux",
+            )
+        except Exception as e:
+            print(f"[CMD] Failed to load {PACKAGE}.platform.linux: {e}")
+        else:
+            _register_module_functions(
+                package_module,
+                f"{PACKAGE}.platform.linux",
+            )
+
     _load_platform_commands(platform_pkg)
 
 
@@ -98,16 +118,4 @@ def _load_platform_commands(platform_pkg: str) -> None:
             print(f"[CMD] Failed to load {module_name}: {e}")
             continue
 
-        for name, obj in inspect.getmembers(module, inspect.isfunction):
-            if obj.__module__ != module.__name__:
-                continue
-
-            if name.startswith("man_"):
-                MANUALS[name[4:]] = obj
-                continue
-
-            if not name.startswith("cmd_"):
-                continue
-
-            command_name = name[4:]
-            COMMANDS[command_name] = obj
+        _register_module_functions(module, module_name)

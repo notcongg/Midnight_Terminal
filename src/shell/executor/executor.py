@@ -36,10 +36,40 @@ _extensions = Extensions()
 # COMMAND RESOLUTION
 # ============================================================
 
+# Case-insensitive command lookup cache.
+# Built lazily after COMMANDS is populated by load_commands().
+# Maps lowercased command name -> canonical command name, so that
+# e.g. "PS", "Ps" and "ps" all resolve to the same builtin.
+_LOWER_TO_CANONICAL: dict[str, str] = {}
+_LOWER_TO_CANONICAL_FROZEN: bool = False
+
+
+def _build_lower_command_map() -> None:
+    global _LOWER_TO_CANONICAL, _LOWER_TO_CANONICAL_FROZEN
+
+    if _LOWER_TO_CANONICAL_FROZEN:
+        return
+
+    _LOWER_TO_CANONICAL = {
+        name.lower(): name
+        for name in COMMANDS
+    }
+    _LOWER_TO_CANONICAL_FROZEN = True
+
+
+def _resolve_command_canonical(name: str) -> str | None:
+    """Return the canonical command name for *name*, or None."""
+    if name in COMMANDS:
+        return name
+
+    _build_lower_command_map()
+    return _LOWER_TO_CANONICAL.get(name.lower())
+
+
 def _resolve_command(name: str) -> Callable[..., Any]:
-    try:
-        return COMMANDS[name]
-    except KeyError as exc:
+    canonical = _resolve_command_canonical(name)
+
+    if canonical is None:
         message = f"{name}: command not found"
         suggestion = format_suggestions(name)
 
@@ -49,11 +79,17 @@ def _resolve_command(name: str) -> Callable[..., Any]:
         raise ExecutionError(
             message,
             command_name=name,
-        ) from exc
+        )
+
+    return COMMANDS[canonical]
 
 
 def _is_builtin(name: str) -> bool:
-    return name in COMMANDS
+    if name in COMMANDS:
+        return True
+
+    _build_lower_command_map()
+    return name.lower() in _LOWER_TO_CANONICAL
 
 
 # ============================================================

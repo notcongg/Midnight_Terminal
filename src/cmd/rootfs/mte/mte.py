@@ -694,28 +694,51 @@ def _run_editor(path: Path) -> bool:
 # ============================================================
 
 # `mte ~/.midconf` and `mte ~/.midhsty` are shortcuts for the
-# canonical src files (src/.midconf and src/.midhsty).
+# canonical config files (src/.midconf and src/.midhsty).
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _resolve_config_path(
+    context: ShellContext,
+    value: str,
+) -> tuple[Path, bool]:
+    """Resolve one path argument against the project config.
+
+    Returns:
+        (path, is_home_shortcut)
+    """
+    project = _project_root()
+
+    normalized = value.strip().replace("\\", "/").rstrip("/")
+
+    if normalized in {
+        "~/.midconf",
+        "$HOME/.midconf",
+    }:
+        return project / ".midconf", True
+
+    if normalized in {
+        "~/.midhsty",
+        "$HOME/.midhsty",
+    }:
+        return project / ".midhsty", True
+
+    return context.resolve_path(value), False
 
 
 def _resolve_editor_path(
     context: ShellContext,
     value: str,
 ) -> Path:
-    name = value.strip().replace("\\", "/").rstrip("/")
+    path, _ = _resolve_config_path(
+        context,
+        value,
+    )
 
-    if name in ("~/.midconf", "$HOME/.midconf"):
-        return (
-            Path(__file__).resolve().parents[3]
-            / ".midconf"
-        )
-
-    if name in ("~/.midhsty", "$HOME/.midhsty"):
-        return (
-            Path(__file__).resolve().parents[3]
-            / ".midhsty"
-        )
-
-    return context.resolve_path(value)
+    return path
 
 
 # ============================================================

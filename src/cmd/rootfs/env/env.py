@@ -115,8 +115,10 @@ def _resolve_value(
     value: str,
     context: ShellContext,
 ) -> str:
-    value = _resolve_commands(value, context)
+    # Variables are expanded *before* command substitution so that
+    # e.g. `(cmd.echo $HOME)` sees the resolved home directory.
     value = _resolve_variables(value)
+    value = _resolve_commands(value, context)
 
     return value
 
@@ -202,8 +204,8 @@ def _store_assignment(
     if assignment.startswith("set "):
         assignment = assignment[4:].lstrip()
 
-    if assignment.endswith(";"):
-        assignment = assignment[:-1].rstrip()
+        if assignment.endswith(";"):
+            assignment = assignment[:-1].rstrip()
 
     name, separator, value = assignment.partition("=")
 
@@ -211,6 +213,9 @@ def _store_assignment(
         return
 
     name = name.strip()
+
+    if name.startswith("$"):
+        name = name[1:].strip()
 
     if not name:
         return
@@ -229,7 +234,6 @@ def _store_assignment(
         value = _resolve_value(value, context)
 
     ENV[name] = value
-
 
 def _parse_alias_statement(
     statement: str,

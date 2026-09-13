@@ -1,3 +1,4 @@
+from src.cmd.rootfs.mte.mte import _resolve_config_path
 from src.shell.context.context import ShellContext
 
 
@@ -11,15 +12,21 @@ NAME
 SYNOPSIS
 
     cat <file>...
+    cat ~/.midconf
+    cat ~/.midhsty
 
 DESCRIPTION
 
     Reads and displays the contents of one or more files.
 
+    The project shortcuts ~/.midconf and ~/.midhsty resolve to the
+    canonical src/.midconf and src/.midhsty files.
+
 EXAMPLES
 
     cat file.txt
     cat file1.txt file2.txt
+    cat ~/.midconf
 
 SEE ALSO
 
@@ -35,7 +42,10 @@ def cmd_cat(args: list[str], context: ShellContext) -> str:
     output: list[str] = []
 
     for arg in args:
-        target = context.resolve_path(arg)
+        target, _ = _resolve_config_path(
+            context,
+            arg,
+        )
 
         if not target.exists() or not target.is_file():
             output.append(f"File not found: {arg}\n")

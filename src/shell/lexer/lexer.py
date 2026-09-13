@@ -273,8 +273,15 @@ def _lookup_variable(
 
     envconfig.dream is the source of truth for shell
     environment variables.
+
+    Variables not defined in ENV fall back to the OS environment
+    so that standard names like $USER, $PATH and $HOME (when not
+    overridden) resolve transparently.
     """
-    return ENV.get(name, "")
+    if name in ENV:
+        return ENV[name]
+
+    return context.environment.get(name, "")
 
 
 def _scan_variable(
