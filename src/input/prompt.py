@@ -10,6 +10,7 @@ from prompt_toolkit.auto_suggest import (
 )
 
 from src.cmd.rootfs.env.env import ENV
+from src.cmd.rootfs.msup.msup import is_active
 from src.input.autocomplete import MidnightCompleter
 from src.input.history import get_history
 
@@ -77,6 +78,7 @@ def _cursor_shape() -> CursorShape:
 
 def _auto_suggest() -> AutoSuggestFromHistory | None:
     """Return an auto-suggestion provider when enabled in .midconf."""
+
     if (
         ENV.get(
             "INPUT.SUGGESTIONS",
@@ -97,23 +99,23 @@ def _prompt_message(
     hostname: str,
     path: str,
 ) -> HTML:
+    msup_active = is_active()
+    msup = "-[MSUP]" if msup_active else ""
+    prompt_symbol = "#>" if msup_active else "$>"
+
     template = _get_env("UP1")
 
     if not template:
         return HTML(
             (
                 "<username>"
-                f"╭─[{username}@{hostname}]"
+                f"╭─[{username}@{hostname}]-[{path}]{msup}"
                 "</username>\n"
-                "<prompt>╰─$ </prompt>"
+                f"<prompt>╰─{prompt_symbol} </prompt>"
             )
         )
 
     lines = template.splitlines()
-
-    # --------------------------------------------------------
-    # Remove multiline wrapper
-    # --------------------------------------------------------
 
     if lines and lines[0].strip() == "[":
         lines = lines[1:]
@@ -121,19 +123,11 @@ def _prompt_message(
     if lines and lines[-1].strip() == "]":
         lines = lines[:-1]
 
-    # --------------------------------------------------------
-    # Remove nested environment assignments
-    # --------------------------------------------------------
-
     lines = [
         line
         for line in lines
         if not line.strip().startswith("set ")
     ]
-
-    # --------------------------------------------------------
-    # Remove quote wrapper
-    # --------------------------------------------------------
 
     if lines and lines[0].strip() == '"':
         lines = lines[1:]
@@ -148,6 +142,8 @@ def _prompt_message(
         .replace("$NAME", username)
         .replace("$HOST", hostname)
         .replace("$PWD", path)
+        .replace("$MSUP", msup)
+        .replace("$PROMPT", prompt_symbol)
     )
 
     return HTML(template)
@@ -201,7 +197,6 @@ def _ctrl_c_bindings() -> KeyBindings:
         """
         Show ^C at the current cursor position and terminate
         the current prompt with KeyboardInterrupt.
-
         The ^C is inserted into the prompt buffer first, so
         prompt_toolkit renders it directly after the prompt
         instead of printing it on a separate line.
@@ -225,7 +220,9 @@ def _read_multiline(
     history,
     session: PromptSession,
 ) -> str:
+
     lines = [first_line]
+
     while True:
         line = session.prompt(
             _continuation_prompt(),
@@ -261,6 +258,7 @@ def prompt(
     hostname: str,
     path: str,
 ) -> str:
+
     message = _prompt_message(
         username,
         hostname,

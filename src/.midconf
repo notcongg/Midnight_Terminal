@@ -6,8 +6,8 @@ set HOME=~/usr/$NAME;
 set PWD=;
 
 // USER PROMPT
-set UP1='╭─[$NAME@$HOST]-[$PWD]
-╰─$~space';
+set UP1='╭─[$NAME@$HOST]-[$PWD]$MSUP
+╰─$PROMPT~space';
 set UP2='> '
 set UP3='#? '
 set UP4='+ ';
@@ -22,3 +22,4 @@ set INPUT.HISTORY_IGNORE_CONSECUTIVE_DUPLICATES=true;
 
 alias ll=ls -la
 alias la=ls -a
+alias hi=echo lô

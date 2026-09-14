@@ -1,45 +1,74 @@
-# Environment / secrets
-.env
-.env.*
-!.env.example
+# ==============================
+# Python
+# ==============================
 
-# Python cache
 __pycache__/
 *.py[cod]
 *.pyo
 
-# Packaging
+# Python packaging
 *.egg-info/
-build/
 dist/
+build/
+.eggs/
 
-# Virtual environments
-.venv/
-venv/
-env/
+# ==============================
+# C / C++ build artifacts
+# ==============================
 
-# Test / tooling cache
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
 
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+
+# ==============================
+# Project-specific build dirs
+# ==============================
+
+**/build/
+**/build-*/
+
+# ==============================
+# Midnight runtime / user data
+# ==============================
+
+.midps
+
+# Midnight config / local state
+.midconf
+.midhsty
+.midnight_history
+
+# Logs
+*.log
+
+# ==============================
 # IDE / editor
+# ==============================
+
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# OS files
+# ==============================
+# OS junk
+# ==============================
+
 .DS_Store
 Thumbs.db
 
-# Project runtime data
-*.log
-
-# Local history / runtime files
-.midnight_history
-
-# idk
-midnight_terminal.egg-info
-build/
-build_win/
+src/cmd/rootfs/hwinfo/collection/ram/build/
+src/cmd/rootfs/hwinfo/collection/ram/build-win/
+src/midnight_terminal.egg-info/
+**/__pycache__/

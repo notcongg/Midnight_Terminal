@@ -53,8 +53,9 @@ def cmd_history(args, context):
         elif arg.startswith("-index="):
             command_index = int(arg.split("=", 1)[1])
 
+    # Create history file if it does not exist
     if not path.exists():
-        return ""
+        path.touch()
 
     with open(path, "r", encoding="utf-8") as file:
         lines = file.read().splitlines()
@@ -63,10 +64,14 @@ def cmd_history(args, context):
 
     for i, line in enumerate(lines):
         if line.startswith("+"):
-            commands.append("\n".join(lines[max(0, i - 1):i + 1]))
+            commands.append(
+                "\n".join(lines[max(0, i - 1):i + 1])
+            )
 
     if command_number is not None:
-        return "\n\n".join(commands[-command_number:])
+        return "\n\n".join(
+            commands[-command_number:]
+        )
 
     if command_index is not None:
         if not 1 <= command_index <= len(commands):
