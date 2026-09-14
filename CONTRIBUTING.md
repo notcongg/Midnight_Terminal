@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo/icon.png alt="Midnight Terminal" width="96">
+  <img src="logo/icon.png" alt="Midnight Terminal" width="96">
 </p>
 
 <h1 align="center">Contributing to Midnight Terminal</h1>
@@ -20,7 +20,7 @@
 
 ---
 
-Thank you for your interest in contributing to **Midnight Terminal**! 
+Thank you for your interest in contributing to **Midnight Terminal**!
 
 Midnight Terminal is an open-source, extensible command-line shell built with Python and C++. Contributions of all kinds are welcome, including bug fixes, improvements, new commands, documentation, tests, and new ideas.
 
