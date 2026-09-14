@@ -6,8 +6,28 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(SODIUM REQUIRED libsodium)
+# ============================================================
+# libsodium
+# ============================================================
+
+if(WIN32)
+
+    find_path(SODIUM_INCLUDE_DIR
+        NAMES sodium.h
+        REQUIRED
+    )
+
+    find_library(SODIUM_LIBRARY
+        NAMES sodium libsodium
+        REQUIRED
+    )
+
+else()
+
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SODIUM REQUIRED libsodium)
+
+endif()
 
 # ============================================================
 # Midnight SUPERUserPermissions
@@ -29,24 +49,37 @@ add_library(midnight_msup SHARED
     ../../../auth/storage/sto.cpp
 )
 
-target_include_directories(midnight_msup
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../../auth
-        ${SODIUM_INCLUDE_DIRS}
-)
+if(WIN32)
 
-target_link_directories(midnight_msup
-    PRIVATE
-        ${SODIUM_LIBRARY_DIRS}
-)
+    target_include_directories(midnight_msup
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../../auth
+            ${SODIUM_INCLUDE_DIR}
+    )
 
-target_link_libraries(midnight_msup
-    PRIVATE
-        ${SODIUM_LIBRARIES}
-)
+    target_link_libraries(midnight_msup
+        PRIVATE
+            ${SODIUM_LIBRARY}
+    )
 
-target_compile_options(midnight_msup
-    PRIVATE
-        ${SODIUM_CFLAGS_OTHER}
-)
+else()
+
+    target_include_directories(midnight_msup
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../../auth
+            ${SODIUM_INCLUDE_DIRS}
+    )
+
+    target_link_directories(midnight_msup
+        PRIVATE
+            ${SODIUM_LIBRARY_DIRS}
+    )
+
+    target_link_libraries(midnight_msup
+        PRIVATE
+            ${SODIUM_LIBRARIES}
+    )
+
+endif()

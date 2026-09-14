@@ -13,6 +13,11 @@ permissions:
   contents: read
 
 jobs:
+
+  # ==========================================================
+  # Python
+  # ==========================================================
+
   python:
     name: Python ${{ matrix.os }} / ${{ matrix.python-version }}
 
@@ -86,9 +91,12 @@ jobs:
           python -c "from src.cmd.rootfs.hwinfo.collection.storage import collect_storage; print(collect_storage())"
           python -c "from src.cmd.rootfs.hwinfo.collection.network import collect_network; print(collect_network())"
 
+  # ==========================================================
+  # Native Linux
+  # ==========================================================
 
   native-linux:
-    name: Native RAM collector / Linux
+    name: Native / Linux
 
     runs-on: ubuntu-latest
 
@@ -96,30 +104,86 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Install build tools
+      - name: Install build tools and libsodium
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
             build-essential \
-            cmake
+            cmake \
+            pkg-config \
+            libsodium-dev
 
-      - name: Configure
+      # --------------------------------------------------------
+      # HWINFO
+      # --------------------------------------------------------
+
+      - name: Configure HWINFO RAM
+        shell: bash
         run: |
           if [ -f src/cmd/rootfs/hwinfo/collection/ram/CMakeLists.txt ]; then
             cmake \
               -S src/cmd/rootfs/hwinfo/collection/ram \
-              -B build-linux
+              -B build-hwinfo-linux
           else
-            echo "RAM CMake project not found."
+            echo "HWINFO RAM CMake project not found."
             exit 1
           fi
 
-      - name: Build
-        run: cmake --build build-linux --config Release
+      - name: Build HWINFO RAM
+        run: |
+          cmake --build build-hwinfo-linux --config Release
 
+      # --------------------------------------------------------
+      # MSUP
+      # --------------------------------------------------------
+
+      - name: Configure MSUP
+        run: |
+          cmake \
+            -S src/cmd/rootfs/msup \
+            -B build-msup-linux
+
+      - name: Build MSUP
+        run: |
+          cmake \
+            --build build-msup-linux \
+            --config Release
+
+      - name: Install MSUP runtime
+        shell: bash
+        run: |
+          mkdir -p src/cmd/rootfs/msup/platform/linux
+
+          cp \
+            build-msup-linux/libmidnight_msup.so \
+            src/cmd/rootfs/msup/platform/linux/libmidnight_msup.so
+
+      # --------------------------------------------------------
+      # MSUP runtime test
+      # --------------------------------------------------------
+
+      - name: Test MSUP Python bridge
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from src.cmd.rootfs.msup.msup import is_active, cmd_msup
+
+          assert is_active() is False
+
+          cmd_msup("-status")
+
+          assert is_active() is False
+
+          print("MSUP Linux bridge test passed.")
+          PY
+
+  # ==========================================================
+  # Native Windows
+  # ==========================================================
 
   native-windows:
-    name: Native RAM collector / Windows
+    name: Native / Windows
 
     runs-on: windows-latest
 
@@ -127,18 +191,114 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Configure
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      # --------------------------------------------------------
+      # vcpkg + libsodium
+      # --------------------------------------------------------
+
+      - name: Install libsodium
+        shell: pwsh
+        run: |
+          git clone --depth 1 https://github.com/microsoft/vcpkg.git vcpkg
+
+          .\vcpkg\bootstrap-vcpkg.bat
+
+          .\vcpkg\vcpkg.exe install libsodium:x64-windows
+
+      - name: Add libsodium to PATH
+        shell: pwsh
+        run: |
+          $sodiumBin = "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows\bin"
+
+          echo "$sodiumBin" >> $env:GITHUB_PATH
+
+      # --------------------------------------------------------
+      # HWINFO
+      # --------------------------------------------------------
+
+      - name: Configure HWINFO RAM
         shell: pwsh
         run: |
           if (Test-Path "src/cmd/rootfs/hwinfo/collection/ram/CMakeLists.txt") {
             cmake `
               -S src/cmd/rootfs/hwinfo/collection/ram `
-              -B build-windows
+              -B build-hwinfo-windows
           }
           else {
-            Write-Error "RAM CMake project not found."
+            Write-Error "HWINFO RAM CMake project not found."
             exit 1
           }
 
-      - name: Build
-        run: cmake --build build-windows --config Release
+      - name: Build HWINFO RAM
+        run: |
+          cmake `
+            --build build-hwinfo-windows `
+            --config Release
+
+      # --------------------------------------------------------
+      # MSUP
+      # --------------------------------------------------------
+
+      - name: Configure MSUP
+        shell: pwsh
+        run: |
+          cmake `
+            -S src/cmd/rootfs/msup `
+            -B build-msup-windows `
+            -DCMAKE_TOOLCHAIN_FILE="$env:GITHUB_WORKSPACE\vcpkg\scripts\buildsystems\vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      - name: Build MSUP
+        run: |
+          cmake `
+            --build build-msup-windows `
+            --config Release
+
+      - name: Install MSUP runtime
+        shell: pwsh
+        run: |
+          New-Item `
+            -ItemType Directory `
+            -Force `
+            -Path "src/cmd/rootfs/msup/platform/windows" | Out-Null
+
+          $msupDll = Get-ChildItem `
+            -Path "build-msup-windows" `
+            -Filter "midnight_msup.dll" `
+            -Recurse |
+            Select-Object -First 1
+
+          if (-not $msupDll) {
+            Write-Error "midnight_msup.dll was not built."
+            exit 1
+          }
+
+          Copy-Item `
+            $msupDll.FullName `
+            "src/cmd/rootfs/msup/platform/windows/midnight_msup.dll" `
+            -Force
+
+          $sodiumDll = "vcpkg\installed\x64-windows\bin\libsodium.dll"
+
+          if (-not (Test-Path $sodiumDll)) {
+            Write-Error "libsodium.dll was not found."
+            exit 1
+          }
+
+          Copy-Item `
+            $sodiumDll `
+            "src/cmd/rootfs/msup/platform/windows/libsodium.dll" `
+            -Force
+
+      # --------------------------------------------------------
+      # MSUP runtime test
+      # --------------------------------------------------------
+
+      - name: Test MSUP Python bridge
+        shell: pwsh
+        run: |
+          python -c "from src.cmd.rootfs.msup.msup import is_active; assert is_active() is False; print('MSUP Windows bridge test passed.')"
