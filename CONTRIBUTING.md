@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo/logo.png" alt="Midnight Terminal" width="96">
+  <img src="logo/icon.png alt="Midnight Terminal" width="96">
 </p>
 
 <h1 align="center">Contributing to Midnight Terminal</h1>
