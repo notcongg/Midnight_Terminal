@@ -8,6 +8,7 @@ from typing import Any
 
 from src.cmd.utils.registry import COMMANDS
 from src.shell.context.context import ShellContext
+from src.sot import MIDCONF_PATH
 
 
 ENV: dict[str, str] = {}
@@ -48,10 +49,7 @@ SEE ALSO
 
 
 def _midconf_path() -> Path:
-    # Canonical config location: src/.midconf.
-    # `mte ~/.midconf` and `mte ~/.midhsty` are resolved to these
-    # files by the mte command (home shortcuts).
-    return Path(__file__).resolve().parents[3] / ".midconf"
+    return MIDCONF_PATH
 
 
 def _resolve_variables(value: str) -> str:

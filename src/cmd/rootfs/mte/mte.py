@@ -9,14 +9,17 @@ from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import HSplit, Window
-from prompt_toolkit.layout.controls import (
-    BufferControl,
-    FormattedTextControl,
-)
+from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
+from prompt_toolkit.lexers import Lexer
 from prompt_toolkit.styles import Style
 
 from src.shell.context.context import ShellContext
+from src.sot import MIDCONF_PATH, MIDHSTY_PATH
 
+
+# ============================================================
+# MANUAL
+# ============================================================
 
 def man_mte() -> str:
     return """MTE(1)                   Midnight Terminal Manual                  MTE(1)
@@ -32,6 +35,7 @@ SYNOPSIS
 DESCRIPTION
 
     Opens a full-screen text editor for the given file.
+
     The editor supports editing, saving, searching and quitting.
 
 SHORTCUTS
@@ -73,7 +77,10 @@ def _read_file(path: Path) -> str:
     )
 
 
-def _write_file(path: Path, content: str) -> None:
+def _write_file(
+    path: Path,
+    content: str,
+) -> None:
     path.write_text(
         content,
         encoding="utf-8",
@@ -88,7 +95,6 @@ def _title_bar(
     path: Path,
     modified: bool,
 ) -> FormattedText:
-
     filename = path.name or "New Buffer"
     modified_text = "Modified" if modified else ""
 
@@ -114,9 +120,7 @@ def _status_bar(
     buffer: Buffer,
     message: str,
 ) -> FormattedText:
-
     document = buffer.document
-
     line = document.cursor_position_row + 1
     column = document.cursor_position_col + 1
 
@@ -137,15 +141,12 @@ def _status_bar(
 
 # ============================================================
 # SHORTCUT HELPER
-#
-# Shortcut:
-#   ^X
-#
-# Help text:
-#   Exit
 # ============================================================
 
-def _shortcut(key: str, text: str) -> list[tuple[str, str]]:
+def _shortcut(
+    key: str,
+    text: str,
+) -> list[tuple[str, str]]:
     return [
         (
             "class:shortcut",
@@ -163,7 +164,6 @@ def _shortcut(key: str, text: str) -> list[tuple[str, str]]:
 # ============================================================
 
 def _help_line_1() -> FormattedText:
-
     fragments: list[tuple[str, str]] = []
 
     fragments.extend(
@@ -194,7 +194,6 @@ def _help_line_1() -> FormattedText:
 # ============================================================
 
 def _help_line_2() -> FormattedText:
-
     fragments: list[tuple[str, str]] = []
 
     fragments.extend(
@@ -260,18 +259,232 @@ def _exit_prompt() -> FormattedText:
 
 
 # ============================================================
+# SYNTAX HIGHLIGHTING
+# ============================================================
+
+class MidnightLexer(Lexer):
+    """
+    Lightweight syntax highlighter for Midnight config files.
+
+    Syntax:
+        // single-line comment
+        /* multi-line comment */
+        "double quoted string"
+        'single quoted string'
+
+    Comments have precedence over strings.
+
+    The lexer keeps track of multi-line comments between
+    prompt_toolkit line calls.
+    """
+
+    def lex_document(self, document: Document):
+        lines = document.lines
+
+        def get_line(
+            line_no: int,
+        ) -> list[tuple[str, str]]:
+            return self._highlight_document(
+                lines,
+                line_no,
+            )
+
+        return get_line
+
+    @staticmethod
+    def _highlight_document(
+        lines: list[str],
+        target_line: int,
+    ) -> list[tuple[str, str]]:
+        in_multiline_comment = False
+
+        for line_no, line in enumerate(lines):
+            fragments: list[tuple[str, str]] = []
+            i = 0
+            length = len(line)
+
+            while i < length:
+                # ------------------------------------------------
+                # Already inside /* ... */
+                # ------------------------------------------------
+                if in_multiline_comment:
+                    end = line.find(
+                        "*/",
+                        i,
+                    )
+
+                    if end == -1:
+                        fragments.append(
+                            (
+                                "class:comment",
+                                line[i:],
+                            )
+                        )
+                        i = length
+                        continue
+
+                    fragments.append(
+                        (
+                            "class:comment",
+                            line[i:end + 2],
+                        )
+                    )
+                    i = end + 2
+                    in_multiline_comment = False
+                    continue
+
+                # ------------------------------------------------
+                # Single-line comment
+                # ------------------------------------------------
+                if line.startswith(
+                    "//",
+                    i,
+                ):
+                    fragments.append(
+                        (
+                            "class:comment",
+                            line[i:],
+                        )
+                    )
+                    i = length
+                    continue
+
+                # ------------------------------------------------
+                # Multi-line comment
+                # ------------------------------------------------
+                if line.startswith(
+                    "/*",
+                    i,
+                ):
+                    end = line.find(
+                        "*/",
+                        i + 2,
+                    )
+
+                    if end == -1:
+                        fragments.append(
+                            (
+                                "class:comment",
+                                line[i:],
+                            )
+                        )
+                        in_multiline_comment = True
+                        i = length
+                        continue
+
+                    fragments.append(
+                        (
+                            "class:comment",
+                            line[i:end + 2],
+                        )
+                    )
+                    i = end + 2
+                    continue
+
+                # ------------------------------------------------
+                # Double-quoted string
+                # ------------------------------------------------
+                if line[i] == '"':
+                    start = i
+                    i += 1
+
+                    while i < length:
+                        if line[i] == "\\":
+                            i += 2
+                            continue
+
+                        if line[i] == '"':
+                            i += 1
+                            break
+
+                        i += 1
+
+                    fragments.append(
+                        (
+                            "class:double-string",
+                            line[start:i],
+                        )
+                    )
+                    continue
+
+                # ------------------------------------------------
+                # Single-quoted string
+                # ------------------------------------------------
+                if line[i] == "'":
+                    start = i
+                    i += 1
+
+                    while i < length:
+                        if line[i] == "\\":
+                            i += 2
+                            continue
+
+                        if line[i] == "'":
+                            i += 1
+                            break
+
+                        i += 1
+
+                    fragments.append(
+                        (
+                            "class:single-string",
+                            line[start:i],
+                        )
+                    )
+                    continue
+
+                # ------------------------------------------------
+                # Normal text
+                # ------------------------------------------------
+                start = i
+
+                while i < length:
+                    if line.startswith(
+                        "//",
+                        i,
+                    ):
+                        break
+
+                    if line.startswith(
+                        "/*",
+                        i,
+                    ):
+                        break
+
+                    if line[i] in {
+                        '"',
+                        "'",
+                    }:
+                        break
+
+                    i += 1
+
+                if start != i:
+                    fragments.append(
+                        (
+                            "",
+                            line[start:i],
+                        )
+                    )
+
+            if line_no == target_line:
+                return fragments
+
+        return []
+
+
+# ============================================================
 # EDITOR
 # ============================================================
 
-def _run_editor(path: Path) -> bool:
-
+def _run_editor(
+    path: Path,
+) -> bool:
     # --------------------------------------------------------
     # Read file
     # --------------------------------------------------------
-
     try:
         content = _read_file(path)
-
     except (OSError, UnicodeError) as exc:
         print(exc)
         return False
@@ -279,7 +492,6 @@ def _run_editor(path: Path) -> bool:
     # --------------------------------------------------------
     # Buffer
     # --------------------------------------------------------
-
     buffer = Buffer(
         multiline=True,
         document=Document(
@@ -295,14 +507,12 @@ def _run_editor(path: Path) -> bool:
     # --------------------------------------------------------
     # Key bindings
     # --------------------------------------------------------
-
     kb = KeyBindings()
 
     # ========================================================
     # CTRL + O
     # WRITE OUT
     # ========================================================
-
     @kb.add("c-o", eager=True)
     def write_out(event) -> None:
         nonlocal modified
@@ -313,10 +523,8 @@ def _run_editor(path: Path) -> bool:
                 path,
                 buffer.text,
             )
-
             modified = False
             status_message = "File written"
-
         except OSError as exc:
             status_message = (
                 f"Error writing file: {exc}"
@@ -328,7 +536,6 @@ def _run_editor(path: Path) -> bool:
     # CTRL + S
     # SAVE
     # ========================================================
-
     @kb.add("c-s", eager=True)
     def save(event) -> None:
         nonlocal modified
@@ -339,10 +546,8 @@ def _run_editor(path: Path) -> bool:
                 path,
                 buffer.text,
             )
-
             modified = False
             status_message = "File written"
-
         except OSError as exc:
             status_message = (
                 f"Error writing file: {exc}"
@@ -354,7 +559,6 @@ def _run_editor(path: Path) -> bool:
     # CTRL + X
     # EXIT
     # ========================================================
-
     @kb.add("c-x", eager=True)
     def exit_editor(event) -> None:
         nonlocal confirm_exit
@@ -372,7 +576,6 @@ def _run_editor(path: Path) -> bool:
     # CTRL + Q
     # FORCE EXIT
     # ========================================================
-
     @kb.add("c-q", eager=True)
     def force_exit(event) -> None:
         event.app.exit(
@@ -383,7 +586,6 @@ def _run_editor(path: Path) -> bool:
     # Y
     # SAVE + EXIT
     # ========================================================
-
     @kb.add("y", eager=True)
     def confirm_yes(event) -> None:
         nonlocal modified
@@ -398,26 +600,21 @@ def _run_editor(path: Path) -> bool:
                 path,
                 buffer.text,
             )
-
             modified = False
             confirm_exit = False
-
             event.app.exit(
                 result=True
             )
-
         except OSError as exc:
             status_message = (
                 f"Error writing file: {exc}"
             )
-
             event.app.invalidate()
 
     # ========================================================
     # N
     # DISCARD + EXIT
     # ========================================================
-
     @kb.add("n", eager=True)
     def confirm_no(event) -> None:
         nonlocal confirm_exit
@@ -426,7 +623,6 @@ def _run_editor(path: Path) -> bool:
             return
 
         confirm_exit = False
-
         event.app.exit(
             result=True
         )
@@ -435,7 +631,6 @@ def _run_editor(path: Path) -> bool:
     # C
     # CANCEL EXIT
     # ========================================================
-
     @kb.add("c", eager=True)
     def confirm_cancel(event) -> None:
         nonlocal confirm_exit
@@ -444,22 +639,25 @@ def _run_editor(path: Path) -> bool:
             return
 
         confirm_exit = False
-
         event.app.invalidate()
 
     # ========================================================
     # CTRL + C
     # CURSOR POSITION
     # ========================================================
-
     @kb.add("c-c", eager=True)
     def cursor_position(event) -> None:
         nonlocal status_message
 
         document = buffer.document
-
-        line = document.cursor_position_row + 1
-        column = document.cursor_position_col + 1
+        line = (
+            document.cursor_position_row
+            + 1
+        )
+        column = (
+            document.cursor_position_col
+            + 1
+        )
 
         status_message = (
             f"Line {line}, Column {column}"
@@ -471,7 +669,6 @@ def _run_editor(path: Path) -> bool:
     # CTRL + G
     # HELP
     # ========================================================
-
     @kb.add("c-g", eager=True)
     def help_screen(event) -> None:
         nonlocal status_message
@@ -488,7 +685,6 @@ def _run_editor(path: Path) -> bool:
     # ========================================================
     # TRACK MODIFICATIONS
     # ========================================================
-
     def on_text_changed(_) -> None:
         nonlocal modified
         nonlocal status_message
@@ -501,26 +697,17 @@ def _run_editor(path: Path) -> bool:
     # ========================================================
     # EDITOR WINDOW
     # ========================================================
-
     editor = Window(
         content=BufferControl(
             buffer=buffer,
+            lexer=MidnightLexer(),
         ),
         wrap_lines=True,
     )
 
     # ========================================================
     # TITLE BAR
-    #
-    # FULL WIDTH:
-    #
-    # ████████████████████████████████████████████████████████
-    #  MTE 1.0                    test.txt
-    # ████████████████████████████████████████████████████████
-    #
-    # White background / black text
     # ========================================================
-
     title = Window(
         content=FormattedTextControl(
             lambda: _title_bar(
@@ -535,7 +722,6 @@ def _run_editor(path: Path) -> bool:
     # ========================================================
     # STATUS BAR
     # ========================================================
-
     status = Window(
         content=FormattedTextControl(
             lambda: (
@@ -553,11 +739,7 @@ def _run_editor(path: Path) -> bool:
 
     # ========================================================
     # HELP LINE 1
-    #
-    # ^G = WHITE BG + BLACK TEXT
-    # Help = BLACK BG + WHITE TEXT
     # ========================================================
-
     help_bar = Window(
         content=FormattedTextControl(
             _help_line_1,
@@ -569,7 +751,6 @@ def _run_editor(path: Path) -> bool:
     # ========================================================
     # HELP LINE 2
     # ========================================================
-
     help_bar_2 = Window(
         content=FormattedTextControl(
             _help_line_2,
@@ -581,7 +762,6 @@ def _run_editor(path: Path) -> bool:
     # ========================================================
     # LAYOUT
     # ========================================================
-
     root = HSplit(
         [
             title,
@@ -595,76 +775,62 @@ def _run_editor(path: Path) -> bool:
     # ========================================================
     # STYLE
     # ========================================================
-
     style = Style.from_dict(
         {
             # ------------------------------------------------
             # Default editor
             # ------------------------------------------------
-
-            "": (
+            "":
                 "bg:#000000 "
-                "#ffffff"
-            ),
+                "#ffffff",
 
             # ------------------------------------------------
             # Header
-            #
-            # FULL WIDTH WHITE
-            # BLACK TEXT
             # ------------------------------------------------
-
-            "title": (
+            "title":
                 "bg:#ffffff "
                 "#000000 "
-                "bold"
-            ),
+                "bold",
 
             # ------------------------------------------------
             # Status
-            #
-            # BLACK BG
-            # WHITE TEXT
             # ------------------------------------------------
-
-            "status": (
+            "status":
                 "bg:#000000 "
-                "#ffffff"
-            ),
+                "#ffffff",
 
             # ------------------------------------------------
-            # Footer container
-            #
-            # BLACK BG
-            # WHITE TEXT
+            # Footer
             # ------------------------------------------------
-
-            "help": (
+            "help":
                 "bg:#000000 "
-                "#ffffff"
-            ),
+                "#ffffff",
 
             # ------------------------------------------------
             # Shortcut
-            #
-            # ONLY ^G / ^O / ^X / ...
-            #
-            # WHITE BG
-            # BLACK TEXT
             # ------------------------------------------------
-
-            "shortcut": (
+            "shortcut":
                 "bg:#ffffff "
                 "#000000 "
-                "bold"
-            ),
+                "bold",
+
+            # ------------------------------------------------
+            # Midnight syntax highlighting
+            # ------------------------------------------------
+            "comment":
+                "#808080",
+
+            "double-string":
+                "#00ffff",
+
+            "single-string":
+                "#00ffff",
         }
     )
 
     # ========================================================
     # APPLICATION
     # ========================================================
-
     app = Application(
         layout=Layout(
             root,
@@ -679,10 +845,8 @@ def _run_editor(path: Path) -> bool:
     # ========================================================
     # RUN
     # ========================================================
-
     try:
         result = app.run()
-
     except KeyboardInterrupt:
         return False
 
@@ -690,41 +854,37 @@ def _run_editor(path: Path) -> bool:
 
 
 # ============================================================
-# HOME SHORTCUTS
+# MIDNIGHT CONFIG PATHS
 # ============================================================
-
-# `mte ~/.midconf` and `mte ~/.midhsty` are shortcuts for the
-# canonical config files (src/.midconf and src/.midhsty).
-
-
-def _project_root() -> Path:
-    return Path(__file__).resolve().parents[3]
-
 
 def _resolve_config_path(
     context: ShellContext,
     value: str,
 ) -> tuple[Path, bool]:
-    """Resolve one path argument against the project config.
+    """
+    Resolve Midnight config shortcuts.
 
     Returns:
         (path, is_home_shortcut)
     """
-    project = _project_root()
-
-    normalized = value.strip().replace("\\", "/").rstrip("/")
+    normalized = (
+        value
+        .strip()
+        .replace("\\", "/")
+        .rstrip("/")
+    )
 
     if normalized in {
         "~/.midconf",
         "$HOME/.midconf",
     }:
-        return project / ".midconf", True
+        return MIDCONF_PATH, True
 
     if normalized in {
         "~/.midhsty",
         "$HOME/.midhsty",
     }:
-        return project / ".midhsty", True
+        return MIDHSTY_PATH, True
 
     return context.resolve_path(value), False
 
@@ -749,7 +909,6 @@ def cmd_mte(
     args: list[str],
     context: ShellContext,
 ) -> str | None:
-
     if not args:
         return "mte: missing file operand"
 
@@ -760,7 +919,6 @@ def cmd_mte(
 
     try:
         _run_editor(path)
-
     except KeyboardInterrupt:
         pass
 

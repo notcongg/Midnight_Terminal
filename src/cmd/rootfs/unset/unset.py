@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-
+from src.cmd.rootfs.env.env import ENV
 from src.cmd.rootfs.env.env import ENV
 from src.shell.context.context import ShellContext
 
@@ -42,10 +42,7 @@ SEE ALSO
 
 
 def _envconfig_path() -> Path:
-    # Canonical config location: src/.midconf.
-    # See mte home shortcuts for `~/.midconf`.
-    return Path(__file__).resolve().parents[3] / ".midconf"
-
+    return MIDCONF_PATH
 
 def _multiline_length(
     lines: list[str],

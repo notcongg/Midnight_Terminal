@@ -1,10 +1,7 @@
-from pathlib import Path
+from src.sot import MIDHSTY_PATH
 
 
-path = (
-    Path(__file__).resolve().parents[3]
-    / ".midhsty"
-)
+path = MIDHSTY_PATH
 
 
 def man_history() -> str:
@@ -17,7 +14,9 @@ NAME
 SYNOPSIS
 
     history
+
     history -cmd=<count>
+
     history -index=<number>
 
 DESCRIPTION
@@ -27,12 +26,15 @@ DESCRIPTION
 OPTIONS
 
     -cmd=<count>    show last <count> commands
+
     -index=<number> show command at specific index
 
 EXAMPLES
 
     history
+
     history -cmd=10
+
     history -index=5
 
 SEE ALSO
@@ -48,24 +50,45 @@ def cmd_history(args, context):
 
     for arg in args:
         if arg.startswith("-cmd="):
-            command_number = int(arg.split("=", 1)[1])
+            command_number = int(
+                arg.split("=", 1)[1]
+            )
 
         elif arg.startswith("-index="):
-            command_index = int(arg.split("=", 1)[1])
+            command_index = int(
+                arg.split("=", 1)[1]
+            )
 
-    # Create history file if it does not exist
+    # Create config directory if it does not exist.
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    # Create history file if it does not exist.
     if not path.exists():
         path.touch()
 
-    with open(path, "r", encoding="utf-8") as file:
-        lines = file.read().splitlines()
+    try:
+        with path.open(
+            "r",
+            encoding="utf-8"
+        ) as file:
+            lines = file.read().splitlines()
+
+    except OSError as error:
+        raise RuntimeError(
+            f"history: failed to read history file: {error}"
+        ) from error
 
     commands = []
 
     for i, line in enumerate(lines):
         if line.startswith("+"):
             commands.append(
-                "\n".join(lines[max(0, i - 1):i + 1])
+                "\n".join(
+                    lines[max(0, i - 1):i + 1]
+                )
             )
 
     if command_number is not None:

@@ -1,12 +1,11 @@
+```yaml
 name: CI
 
 on:
   push:
     branches:
       - "**"
-
   pull_request:
-
   workflow_dispatch:
 
 permissions:
@@ -20,22 +19,20 @@ jobs:
 
   python:
     name: Python ${{ matrix.os }} / ${{ matrix.python-version }}
-
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
-
       matrix:
         os:
           - ubuntu-latest
           - windows-latest
-
         python-version:
           - "3.13"
           - "3.14"
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -91,23 +88,23 @@ jobs:
           python -c "from src.cmd.rootfs.hwinfo.collection.storage import collect_storage; print(collect_storage())"
           python -c "from src.cmd.rootfs.hwinfo.collection.network import collect_network; print(collect_network())"
 
+
   # ==========================================================
   # Native Linux
   # ==========================================================
 
   native-linux:
     name: Native / Linux
-
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Install build tools and libsodium
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
             build-essential \
             cmake \
@@ -132,7 +129,96 @@ jobs:
 
       - name: Build HWINFO RAM
         run: |
-          cmake --build build-hwinfo-linux --config Release
+          cmake \
+            --build build-hwinfo-linux \
+            --config Release
+
+      # --------------------------------------------------------
+      # PS
+      # --------------------------------------------------------
+
+      - name: Configure PS
+        shell: bash
+        run: |
+          if [ -f src/cmd/rootfs/ps/CMakeLists.txt ]; then
+            cmake \
+              -S src/cmd/rootfs/ps \
+              -B build-ps-linux \
+              -DCMAKE_BUILD_TYPE=Release
+          else
+            echo "PS CMake project not found."
+            exit 1
+          fi
+
+      - name: Build PS
+        run: |
+          cmake \
+            --build build-ps-linux \
+            --config Release
+
+      - name: Test PS command
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import ctypes
+          import pathlib
+
+          dll = pathlib.Path("build-ps-linux/libmidnight_ps.so")
+
+          if not dll.exists():
+              raise SystemExit(
+                  f"PS library not found: {dll}"
+              )
+
+          lib = ctypes.CDLL(str(dll))
+
+          lib.midnight_ps_run.argtypes = [
+              ctypes.c_int,
+              ctypes.POINTER(ctypes.c_char_p),
+          ]
+          lib.midnight_ps_run.restype = ctypes.c_char_p
+
+          def run_ps(args):
+              encoded = [arg.encode("utf-8") for arg in args]
+              argv = (
+                  ctypes.c_char_p * len(encoded)
+              )(*encoded)
+
+              result = lib.midnight_ps_run(
+                  len(encoded),
+                  argv,
+              )
+
+              if not result:
+                  raise RuntimeError(
+                      "midnight_ps_run returned NULL"
+                  )
+
+              return result.decode(
+                  "utf-8",
+                  errors="replace",
+              )
+
+          tests = [
+              ["ps"],
+              ["ps", "-a"],
+              ["ps", "-n=5"],
+              ["ps", "-sort=cpu"],
+          ]
+
+          for args in tests:
+              print(f"$ {' '.join(args)}")
+
+              output = run_ps(args)
+
+              if not output.strip():
+                  raise RuntimeError(
+                      f"PS returned empty output for: {args}"
+                  )
+
+              print(output)
+
+          print("PS Linux runtime test passed.")
 
       # --------------------------------------------------------
       # MSUP
@@ -178,16 +264,17 @@ jobs:
           print("MSUP Linux bridge test passed.")
           PY
 
+
   # ==========================================================
   # Native Windows
   # ==========================================================
 
   native-windows:
     name: Native / Windows
-
     runs-on: windows-latest
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v7
 
@@ -204,16 +291,13 @@ jobs:
         shell: pwsh
         run: |
           git clone --depth 1 https://github.com/microsoft/vcpkg.git vcpkg
-
           .\vcpkg\bootstrap-vcpkg.bat
-
           .\vcpkg\vcpkg.exe install libsodium:x64-windows
 
       - name: Add libsodium to PATH
         shell: pwsh
         run: |
           $sodiumBin = "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows\bin"
-
           echo "$sodiumBin" >> $env:GITHUB_PATH
 
       # --------------------------------------------------------
@@ -240,6 +324,103 @@ jobs:
             --config Release
 
       # --------------------------------------------------------
+      # PS
+      # --------------------------------------------------------
+
+      - name: Configure PS
+        shell: pwsh
+        run: |
+          if (Test-Path "src/cmd/rootfs/ps/CMakeLists.txt") {
+            cmake `
+              -S src/cmd/rootfs/ps `
+              -B build-ps-windows `
+              -DCMAKE_BUILD_TYPE=Release
+          }
+          else {
+            Write-Error "PS CMake project not found."
+            exit 1
+          }
+
+      - name: Build PS
+        run: |
+          cmake `
+            --build build-ps-windows `
+            --config Release
+
+      - name: Test PS command
+        shell: pwsh
+        run: |
+          $psDll = Get-ChildItem `
+            -Path "build-ps-windows" `
+            -Filter "midnight_ps.dll" `
+            -Recurse |
+            Select-Object -First 1
+
+          if (-not $psDll) {
+            Write-Error "midnight_ps.dll was not built."
+            exit 1
+          }
+
+          $env:PS_DLL = $psDll.FullName
+
+          python -c @'
+          import ctypes
+          import os
+
+          dll_path = os.environ["PS_DLL"]
+
+          lib = ctypes.WinDLL(dll_path)
+
+          lib.midnight_ps_run.argtypes = [
+              ctypes.c_int,
+              ctypes.POINTER(ctypes.c_char_p),
+          ]
+          lib.midnight_ps_run.restype = ctypes.c_char_p
+
+          def run_ps(args):
+              encoded = [arg.encode("utf-8") for arg in args]
+              argv = (
+                  ctypes.c_char_p * len(encoded)
+              )(*encoded)
+
+              result = lib.midnight_ps_run(
+                  len(encoded),
+                  argv,
+              )
+
+              if not result:
+                  raise RuntimeError(
+                      "midnight_ps_run returned NULL"
+                  )
+
+              return result.decode(
+                  "utf-8",
+                  errors="replace",
+              )
+
+          tests = [
+              ["ps"],
+              ["ps", "-a"],
+              ["ps", "-n=5"],
+              ["ps", "-sort=cpu"],
+          ]
+
+          for args in tests:
+              print(f"$ {' '.join(args)}")
+
+              output = run_ps(args)
+
+              if not output.strip():
+                  raise RuntimeError(
+                      f"PS returned empty output for: {args}"
+                  )
+
+              print(output)
+
+          print("PS Windows runtime test passed.")
+          '@
+
+      # --------------------------------------------------------
       # MSUP
       # --------------------------------------------------------
 
@@ -264,7 +445,8 @@ jobs:
           New-Item `
             -ItemType Directory `
             -Force `
-            -Path "src/cmd/rootfs/msup/platform/windows" | Out-Null
+            -Path "src/cmd/rootfs/msup/platform/windows" |
+            Out-Null
 
           $msupDll = Get-ChildItem `
             -Path "build-msup-windows" `
@@ -302,3 +484,4 @@ jobs:
         shell: pwsh
         run: |
           python -c "from src.cmd.rootfs.msup.msup import is_active; assert is_active() is False; print('MSUP Windows bridge test passed.')"
+```

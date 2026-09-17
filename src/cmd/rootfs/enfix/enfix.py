@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -5,6 +6,7 @@ from pathlib import Path
 from src.cmd.rootfs.env.env import ENV
 from src.cmd.utils.multiline import read_multiline
 from src.shell.context.context import ShellContext
+from src.sot import MIDCONF_PATH
 
 
 def man_enfix() -> str:
@@ -18,25 +20,28 @@ SYNOPSIS
 
     enfix NAME=value
 
-    enfix NAME=[
+    enfix NAME='
+
     ...
-    ]
+
+    '
 
 DESCRIPTION
 
     Changes an existing environment variable in .midconf.
 
     Multiline variables can be edited directly from the shell.
+
     The multiline block is replaced while preserving its structure.
 
 EXAMPLES
 
     enfix UP2=>;
 
-    enfix UP1=[
+    enfix UP1='
     hello
     world
-    ]
+    '
 
 SEE ALSO
 
@@ -46,9 +51,7 @@ SEE ALSO
 
 
 def _envconfig_path() -> Path:
-    # Canonical config location: src/.midconf.
-    # See mte home shortcuts for `~/.midconf`.
-    return Path(__file__).resolve().parents[3] / ".midconf"
+    return MIDCONF_PATH
 
 
 def _variable_name(assignment: str) -> str:
@@ -85,56 +88,29 @@ def _replace_single(
     lines[index] = f"{indent}set ${name}={value};"
 
 
-def _replace_multiline(
-    lines: list[str],
-    index: int,
-    name: str,
-    block: str,
-) -> list[str]:
-    """
-    Replace the existing multiline variable with a new block.
-
-    The block must already contain the opening and closing brackets.
-    """
-
-    old_line = lines[index]
-
-    # Preserve indentation of the original `set`.
-    indent = old_line[: len(old_line) - len(old_line.lstrip())]
-
-    block_lines = block.splitlines()
-
-    if not block_lines:
-        return lines
-
-    block_lines[0] = f"{indent}set ${name}={block_lines[0]}"
-
-    # Preserve indentation/content exactly as entered.
-    lines[index:index + _multiline_length(lines, index)] = block_lines
-
-    return lines
-
-
 def _multiline_length(lines: list[str], start: int) -> int:
     """
-    Return the number of lines occupied by a multiline assignment.
+    Return the number of lines occupied by a single-quoted assignment.
     """
 
-    depth = 0
+    first_line = lines[start]
 
-    for index in range(start, len(lines)):
-        line = lines[index]
+    # Count quotes in the assignment.
+    quote_count = first_line.count("'")
 
-        depth += line.count("[")
-        depth -= line.count("]")
+    # The opening and closing quote are on the same line.
+    if quote_count % 2 == 0:
+        return 1
 
-        if index == start and depth == 0:
-            return 1
+    for index in range(start + 1, len(lines)):
+        quote_count += lines[index].count("'")
 
-        if depth <= 0:
+        if quote_count % 2 == 0:
             return index - start + 1
 
-    raise ValueError("enfix: unterminated multiline block")
+    raise ValueError(
+        "enfix: unterminated single quote"
+    )
 
 
 def _replace_variable(
@@ -145,49 +121,77 @@ def _replace_variable(
 ) -> None:
     stripped_value = value.lstrip()
 
-    # Multiline assignment.
-    if stripped_value.startswith("["):
-        new_block = stripped_value
-
-        block_lines = new_block.splitlines()
+    # Multiline single-quoted assignment.
+    if stripped_value.startswith("'"):
+        block_lines = stripped_value.splitlines()
 
         if not block_lines:
             return
 
-        if block_lines[-1].strip() != "]":
+        quote_count = sum(
+            line.count("'")
+            for line in block_lines
+        )
+
+        if quote_count % 2 != 0:
             raise ValueError(
-                "enfix: multiline block must end with ]"
+                "enfix: unterminated single quote"
             )
 
         indent = lines[index][
             : len(lines[index]) - len(lines[index].lstrip())
         ]
 
-        block_lines[0] = f"{indent}set ${name}=" + block_lines[0]
+        block_lines[0] = (
+            f"{indent}set ${name}="
+            + block_lines[0]
+        )
 
-        old_length = _multiline_length(lines, index)
+        old_length = _multiline_length(
+            lines,
+            index,
+        )
 
         lines[index:index + old_length] = block_lines
         return
 
     # Normal one-line assignment.
-    _replace_single(lines, index, name, value.strip())
+    _replace_single(
+        lines,
+        index,
+        name,
+        value.strip(),
+    )
 
 
 def _write_variable(name: str, value: str) -> None:
     path = _envconfig_path()
 
     if not path.exists():
-        raise ValueError("enfix: .midconf not found")
+        raise ValueError(
+            "enfix: .midconf not found"
+        )
 
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = path.read_text(
+        encoding="utf-8",
+    ).splitlines()
 
-    index = _find_variable(lines, name)
+    index = _find_variable(
+        lines,
+        name,
+    )
 
     if index is None:
-        raise ValueError(f"enfix: variable not found: {name}")
+        raise ValueError(
+            f"enfix: variable not found: {name}"
+        )
 
-    _replace_variable(lines, index, name, value)
+    _replace_variable(
+        lines,
+        index,
+        name,
+        value,
+    )
 
     path.write_text(
         "\n".join(lines) + "\n",
@@ -195,24 +199,32 @@ def _write_variable(name: str, value: str) -> None:
     )
 
 
-def _extract_multiline(args: list[str]) -> tuple[str, str]:
+def _extract_multiline(
+    args: list[str],
+) -> tuple[str, str]:
     """
     Parse:
 
-        enfix NAME=[
+        enfix NAME='
         ...
-        ]
+        '
 
     Returns:
+
         (NAME, multiline_value)
     """
 
     first = args[0]
 
     if "=" not in first:
-        raise ValueError("invalid assignment")
+        raise ValueError(
+            "invalid assignment"
+        )
 
-    name, value = first.split("=", 1)
+    name, value = first.split(
+        "=",
+        1,
+    )
 
     name = name.strip()
 
@@ -224,18 +236,21 @@ def _extract_multiline(args: list[str]) -> tuple[str, str]:
     for line in args[1:]:
         lines.append(line)
 
-        if line.strip() == "]":
+        if line.rstrip().endswith("'"):
             break
 
-    if not lines[-1].strip() == "]":
+    if not lines[-1].rstrip().endswith("'"):
         raise ValueError(
-            "enfix: multiline block must end with ]"
+            "enfix: multiline block must end with '"
         )
 
     return name, "\n".join(lines)
 
 
-def cmd_enfix(args: list[str], context: ShellContext) -> None:
+def cmd_enfix(
+    args: list[str],
+    context: ShellContext,
+) -> None:
     if not args:
         print("Usage: enfix NAME=value")
         return
@@ -246,20 +261,37 @@ def cmd_enfix(args: list[str], context: ShellContext) -> None:
         print("Usage: enfix NAME=value")
         return
 
-    name = _variable_name(assignment)
+    name = _variable_name(
+        assignment,
+    )
 
     if not name:
         print("Usage: enfix NAME=value")
         return
 
-    # Multiline mode.
-    if args[0].rstrip().endswith("=[") or (
-        "=" in args[0]
-        and args[0].split("=", 1)[1].strip() == "["
+    # Multiline single-quoted mode.
+    if (
+        args[0].rstrip().endswith("='")
+        or (
+            "=" in args[0]
+            and args[0].split(
+                "=",
+                1,
+            )[1].strip() == "'"
+        )
     ):
-        name, value = _extract_multiline(args)
+        name, value = _extract_multiline(
+            args,
+        )
     else:
-        _, value = assignment.split("=", 1)
+        _, value = assignment.split(
+            "=",
+            1,
+        )
+
         value = value.strip()
 
-    _write_variable(name, value)
+    _write_variable(
+        name,
+        value,
+    )

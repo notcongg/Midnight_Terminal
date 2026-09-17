@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-
+from src.sot import MIDCONF_PATH
 from src.cmd.rootfs.env.env import ENV
 from src.shell.context.context import ShellContext
 
@@ -49,11 +49,8 @@ SEE ALSO
 """
 
 
-def _envconfig_path() -> Path:
-    # Canonical config location: src/.midconf.
-    # See mte home shortcuts for `~/.midconf`.
-    return Path(__file__).resolve().parents[3] / ".midconf"
-
+def _midconf_path() -> Path:
+    return MIDCONF_PATH
 
 def _find_variable(
     lines: list[str],

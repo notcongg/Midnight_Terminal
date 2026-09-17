@@ -1,43 +1,52 @@
+
 from __future__ import annotations
 
 from pathlib import Path
 
 from src.shell.context.context import ShellContext
+from src.sot import MIDALIAS_PATH
 
 
-def _midconf_path() -> Path:
-    # Canonical config location: src/.midconf.
-    # `mte ~/.midconf` and `mte ~/.midhsty` are resolved to these
-    # files by the mte command (home shortcuts).
-    return Path(__file__).resolve().parents[3] / ".midconf"
+def _midalias_path() -> Path:
+    return MIDALIAS_PATH
 
 
-def _read_midconf_lines() -> list[str]:
-    path = _midconf_path()
+def _read_midalias_lines() -> list[str]:
+    path = _midalias_path()
 
     if not path.exists():
         return []
 
     try:
-        return path.read_text(encoding="utf-8").splitlines()
+        return path.read_text(
+            encoding="utf-8"
+        ).splitlines()
     except OSError:
         return []
 
 
-def _write_midconf_lines(lines: list[str]) -> None:
-    path = _midconf_path()
+def _write_midalias_lines(lines: list[str]) -> None:
+    path = _midalias_path()
 
     try:
+        path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
         path.write_text(
             "\n".join(lines) + "\n",
             encoding="utf-8",
         )
     except OSError as error:
-        print(f"Failed to save .midconf: {error}")
+        print(
+            f"Failed to save .midalias: {error}"
+        )
 
 
 def _remove_block_comments(text: str) -> str:
     """Remove /* ... */ block comments."""
+
     result = []
     i = 0
     in_quote = False
@@ -51,13 +60,24 @@ def _remove_block_comments(text: str) -> str:
             i += 1
             continue
 
-        if not in_quote and ch == "/" and i + 1 < len(text) and text[i + 1] == "*":
+        if (
+            not in_quote
+            and ch == "/"
+            and i + 1 < len(text)
+            and text[i + 1] == "*"
+        ):
             i += 2
+
             while i < len(text) - 1:
-                if text[i] == "*" and text[i + 1] == "/":
+                if (
+                    text[i] == "*"
+                    and text[i + 1] == "/"
+                ):
                     i += 2
                     break
+
                 i += 1
+
             continue
 
         result.append(ch)
@@ -74,21 +94,26 @@ NAME
     alias - create or manage command aliases
 
 SYNOPSIS
+
     alias
+
     alias <name> = <command>
 
 DESCRIPTION
 
-    Creates command aliases. Aliases are stored in .midconf.
+    Creates command aliases. Aliases are stored in .midalias.
 
 EXAMPLES
+
     alias ll = ls -la
+
     alias cls = clear
+
     alias
 
 SEE ALSO
 
-    unalias(1), .midconf(5)
+    unalias(1), .midalias(5)
 
 """
 
@@ -114,30 +139,39 @@ EXAMPLES
 
 SEE ALSO
 
-    alias(1), .midconf(5)
+    alias(1), .midalias(5)
 
 """
 
 
 def load_aliases(context: ShellContext) -> None:
     """
-    Load aliases from .midconf.
+    Load aliases from .midalias.
 
-    Kept for backward compatibility - aliases are also loaded during
-    _load_midconf in env.py, but this can be used for reloading.
+    Aliases are stored separately from .midconf.
     """
-    path = _midconf_path()
+
+    path = _midalias_path()
 
     if not path.exists():
         return
 
-    text = path.read_text(encoding="utf-8")
+    try:
+        text = path.read_text(
+            encoding="utf-8"
+        )
+    except OSError:
+        return
+
     text = _remove_block_comments(text)
 
     for line in text.splitlines():
         stripped = line.strip()
 
-        if not stripped or not stripped.startswith("alias "):
+        if (
+            not stripped
+            or not stripped.startswith("alias ")
+        ):
             continue
 
         rest = stripped[6:].strip()
@@ -149,15 +183,22 @@ def load_aliases(context: ShellContext) -> None:
         name = name.strip()
         value = value.strip()
 
-        # Remove surrounding quotes from value
-        if len(value) >= 2 and value[0] in ("'", '"') and value[-1] == value[0]:
+        # Remove surrounding quotes from value.
+        if (
+            len(value) >= 2
+            and value[0] in ("'", '"')
+            and value[-1] == value[0]
+        ):
             value = value[1:-1]
 
         if name and value:
             context.aliases[name] = value
 
 
-def expand_alias(command: str, context: ShellContext) -> str:
+def expand_alias(
+    command: str,
+    context: ShellContext,
+) -> str:
     parts = command.split()
 
     if not parts:
@@ -174,7 +215,10 @@ def expand_alias(command: str, context: ShellContext) -> str:
     return f"{alias} {' '.join(parts[1:])}"
 
 
-def cmd_alias(args: list[str], context: ShellContext) -> None:
+def cmd_alias(
+    args: list[str],
+    context: ShellContext,
+) -> None:
     aliases = context.aliases
 
     if not args:
@@ -199,10 +243,17 @@ def cmd_alias(args: list[str], context: ShellContext) -> None:
         return
 
     aliases[name] = command
-    _save_alias_to_midconf(name, command)
+
+    _save_alias_to_midalias(
+        name,
+        command,
+    )
 
 
-def cmd_unalias(args: list[str], context: ShellContext) -> None:
+def cmd_unalias(
+    args: list[str],
+    context: ShellContext,
+) -> None:
     if not args:
         print("unalias <name>")
         return
@@ -211,42 +262,56 @@ def cmd_unalias(args: list[str], context: ShellContext) -> None:
     aliases = context.aliases
 
     if name not in aliases:
-        print(f"Alias '{name}' not found.")
+        print(
+            f"Alias '{name}' not found."
+        )
         return
 
     del aliases[name]
-    _remove_alias_from_midconf(name)
 
-    print(f"Alias '{name}' removed.")
+    _remove_alias_from_midalias(name)
+
+    print(
+        f"Alias '{name}' removed."
+    )
 
 
-def _save_alias_to_midconf(name: str, command: str) -> None:
-    """Append or update an alias in .midconf."""
-    lines = _read_midconf_lines()
+def _save_alias_to_midalias(
+    name: str,
+    command: str,
+) -> None:
+    """Append or update an alias in .midalias."""
 
-    # Check if alias already exists
+    lines = _read_midalias_lines()
+
     alias_prefix = f"alias {name}="
     new_line = f"alias {name}={command}"
 
     for i, line in enumerate(lines):
         if line.strip().startswith(alias_prefix):
             lines[i] = new_line
-            _write_midconf_lines(lines)
+
+            _write_midalias_lines(lines)
             return
 
-    # Append new alias
     lines.append(new_line)
-    _write_midconf_lines(lines)
+
+    _write_midalias_lines(lines)
 
 
-def _remove_alias_from_midconf(name: str) -> None:
-    """Remove an alias from .midconf."""
-    lines = _read_midconf_lines()
+def _remove_alias_from_midalias(
+    name: str,
+) -> None:
+    """Remove an alias from .midalias."""
+
+    lines = _read_midalias_lines()
+
     alias_prefix = f"alias {name}="
 
     new_lines = [
-        line for line in lines
+        line
+        for line in lines
         if not line.strip().startswith(alias_prefix)
     ]
 
-    _write_midconf_lines(new_lines)
+    _write_midalias_lines(new_lines)
