@@ -22,7 +22,7 @@ def get_volume_serial(p):
         )
 
         if res == 0:
-            return "0000-0000"
+            return "xxxx-xxxx"
 
         return (
             f"{serial_number.value & 0xFFFF:04X}-"
@@ -30,7 +30,7 @@ def get_volume_serial(p):
         )
 
     except Exception:
-        return "0000-0000"
+        return "xxxx-xxxx"
 
 
 def get_volume_label(p):
@@ -55,7 +55,7 @@ def get_volume_label(p):
         if res == 0:
             return ""
 
-        return f"is {volume_name.value}"
+        return volume_name.value
 
     except Exception:
         return "has no label"

@@ -23,6 +23,7 @@ from src.shell.ast.ast import Command, Pipeline, Sequence
 from src.shell.context.context import ShellContext
 from src.shell.errors.errors import ExecutionError, ShellError
 from src.shell.syntax.suggestions import format_suggestions
+from src.cmd.utils.result import CommandResult
 
 
 # ============================================================
@@ -718,12 +719,19 @@ def _execute_single_command(
         with contextlib.redirect_stdout(
             stdout_target
         ):
-            output = _invoke_command(
+            result = _invoke_command(
                 handler,
                 command.name,
                 command.args,
                 exec_context,
             )
+
+            if isinstance(result, CommandResult):
+                output = result.output
+                command_status = result.status
+            else:
+                output = result
+                command_status = 0
 
     finally:
         context.cwd = exec_context.cwd

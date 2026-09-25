@@ -478,9 +478,36 @@ def _scan_escape(
 ) -> str:
     escape_pos = scanner.i
 
+    # Consume '\'
     scanner.advance()
 
+    # Trailing '\' -> keep it literal.
     if scanner.eof():
+        return "\\"
+
+    nxt = scanner.peek()
+
+    # Characters that backslash is allowed to escape
+    # outside quotes.
+    escapable = {
+        " ",
+        "\t",
+        "\n",
+        "\r",
+        "\\",
+        "'",
+        '"',
+        "$",
+        "|",
+        ">",
+        "<",
+        "&",
+        ";",
+    }
+
+    # On Windows, a backslash followed by a normal
+    # character is a path separator, not an escape.
+    if nxt not in escapable:
         return "\\"
 
     return scanner.advance()

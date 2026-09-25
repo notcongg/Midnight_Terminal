@@ -5,12 +5,10 @@ from pathlib import Path
 from prompt_toolkit.history import FileHistory
 
 from src.cmd.rootfs.env.env import ENV
+from src.utils.paths import midhsty_path
 
 
-HISTORY_FILE = (
-    Path(__file__).resolve().parents[1]
-    / ".midhsty"
-)
+HISTORY_FILE: Path = midhsty_path()
 
 
 def _env_bool(
@@ -54,6 +52,13 @@ def ignore_consecutive_duplicates() -> bool:
     )
 
 
+def _ensure_history_path() -> None:
+    HISTORY_FILE.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+
 def _read_entries() -> list[str]:
     if not HISTORY_FILE.exists():
         return []
@@ -77,6 +82,8 @@ def _read_entries() -> list[str]:
 def _write_entries(
     entries: list[str],
 ) -> None:
+    _ensure_history_path()
+
     HISTORY_FILE.write_text(
         "\n\n".join(entries) + "\n\n",
         encoding="utf-8",
@@ -102,7 +109,6 @@ def _last_command() -> str | None:
         return None
 
     last = entries[-1]
-
     lines = last.splitlines()
 
     commands = [
@@ -130,7 +136,6 @@ class MidnightHistory(FileHistory):
             return
 
         super().append_string(string)
-
         _trim_history()
 
     def replace_last_string(
@@ -144,7 +149,6 @@ class MidnightHistory(FileHistory):
             return
 
         last = entries[-1]
-
         lines = last.splitlines()
 
         if not any(
@@ -168,7 +172,6 @@ class MidnightHistory(FileHistory):
         )
 
         entries[-1] = new_entry
-
         _write_entries(entries)
 
         self._loaded_strings = list(
@@ -179,6 +182,8 @@ class MidnightHistory(FileHistory):
 def get_history() -> MidnightHistory | None:
     if not history_enabled():
         return None
+
+    _ensure_history_path()
 
     if not HISTORY_FILE.exists():
         HISTORY_FILE.touch(

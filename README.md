@@ -13,6 +13,7 @@
 </p>
 
 ## Overview
+> [BEFORE READ ANYTHING, PLEASE KNOW THIS IS A HOBBY PROJECT TO TEST CAN ME AND CHATGPT MAKE A SHELL.]
 
 Midnight Terminal started as a simple terminal project and evolved into a full command-line shell with its own command system, parser, executor, environment, history, pipelines, redirection, process management, AI integration, and native C++ extensions.
 

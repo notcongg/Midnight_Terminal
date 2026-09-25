@@ -9,52 +9,217 @@ from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import HSplit, Window
+<<<<<<< HEAD
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
+=======
+from prompt_toolkit.layout.controls import (
+    BufferControl,
+    FormattedTextControl,
+)
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 from prompt_toolkit.lexers import Lexer
 from prompt_toolkit.styles import Style
 
 from src.shell.context.context import ShellContext
+<<<<<<< HEAD
 from src.sot import MIDCONF_PATH, MIDHSTY_PATH
 
 
 # ============================================================
+=======
+from src.utils.paths import midconf_path, midhsty_path
+
+
+# ============================================================
+# COMMENT-ONLY SYNTAX HIGHLIGHTING
+# ============================================================
+
+class CommentLexer(Lexer):
+    """
+    Highlight only:
+        // single-line comments
+        /* multi-line comments */
+
+    Everything else remains unstyled.
+    """
+
+    def lex_document(self, document: Document):
+        lines = document.lines
+
+        styled_lines: list[list[tuple[str, str]]] = []
+        in_multiline = False
+
+        for line in lines:
+            fragments: list[tuple[str, str]] = []
+            i = 0
+            normal_start = 0
+
+            while i < len(line):
+                # ====================================================
+                # Inside /* ... */ comment
+                # ====================================================
+                if in_multiline:
+                    end = line.find("*/", i)
+
+                    if end == -1:
+                        if normal_start < i:
+                            fragments.append(
+                                ("", line[normal_start:i])
+                            )
+
+                        fragments.append(
+                            ("class:comment", line[i:])
+                        )
+
+                        i = len(line)
+                        normal_start = i
+                        break
+
+                    if normal_start < i:
+                        fragments.append(
+                            ("", line[normal_start:i])
+                        )
+
+                    comment_end = end + 2
+
+                    fragments.append(
+                        (
+                            "class:comment",
+                            line[i:comment_end],
+                        )
+                    )
+
+                    i = comment_end
+                    normal_start = i
+                    in_multiline = False
+                    continue
+
+                # ====================================================
+                # Find next comment
+                # ====================================================
+                slash_comment = line.find("//", i)
+                block_comment = line.find("/*", i)
+
+                positions = [
+                    pos
+                    for pos in (
+                        slash_comment,
+                        block_comment,
+                    )
+                    if pos != -1
+                ]
+
+                # No more comments on this line.
+                if not positions:
+                    break
+
+                comment_start = min(positions)
+
+                # Keep text before comment unchanged.
+                if comment_start > normal_start:
+                    fragments.append(
+                        (
+                            "",
+                            line[
+                                normal_start:comment_start
+                            ],
+                        )
+                    )
+
+                # ====================================================
+                # // single-line comment
+                # ====================================================
+                if (
+                    slash_comment != -1
+                    and slash_comment == comment_start
+                    and (
+                        block_comment == -1
+                        or slash_comment < block_comment
+                    )
+                ):
+                    fragments.append(
+                        (
+                            "class:comment",
+                            line[slash_comment:],
+                        )
+                    )
+
+                    i = len(line)
+                    normal_start = i
+                    break
+
+                # ====================================================
+                # /* multi-line comment
+                # ====================================================
+                fragments.append(
+                    (
+                        "class:comment",
+                        line[comment_start:comment_start + 2],
+                    )
+                )
+
+                i = comment_start + 2
+                normal_start = i
+                in_multiline = True
+
+            # Remaining normal text.
+            if normal_start < len(line):
+                fragments.append(
+                    (
+                        "",
+                        line[normal_start:],
+                    )
+                )
+
+            if not fragments:
+                fragments.append(("", ""))
+
+            styled_lines.append(fragments)
+
+        def get_line(lineno: int):
+            if 0 <= lineno < len(styled_lines):
+                return styled_lines[lineno]
+
+            return [("", "")]
+
+        return get_line
+
+
+# ============================================================
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 # MANUAL
 # ============================================================
 
 def man_mte() -> str:
-    return """MTE(1)                   Midnight Terminal Manual                  MTE(1)
+    return """MTE(1)                    Midnight Terminal Manual                   MTE(1)
 
 NAME
-
     mte - Midnight Text Editor
 
 SYNOPSIS
-
     mte <file>
 
 DESCRIPTION
-
     Opens a full-screen text editor for the given file.
 
     The editor supports editing, saving, searching and quitting.
 
 SHORTCUTS
-
     ^G      help
     ^O      save (write out)
     ^W      search
     ^X      exit
 
 EXAMPLES
-
     mte notes.txt
     mte .midconf
     mte .midhsty
 
+    mte ~/.midconf
+    mte ~/.midhsty
+
 SEE ALSO
-
     cat(1), echo(1), crt(1)
-
 """
 
 
@@ -81,6 +246,14 @@ def _write_file(
     path: Path,
     content: str,
 ) -> None:
+<<<<<<< HEAD
+=======
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
     path.write_text(
         content,
         encoding="utf-8",
@@ -477,9 +650,13 @@ class MidnightLexer(Lexer):
 # EDITOR
 # ============================================================
 
+<<<<<<< HEAD
 def _run_editor(
     path: Path,
 ) -> bool:
+=======
+def _run_editor(path: Path) -> bool:
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
     # --------------------------------------------------------
     # Read file
     # --------------------------------------------------------
@@ -700,7 +877,11 @@ def _run_editor(
     editor = Window(
         content=BufferControl(
             buffer=buffer,
+<<<<<<< HEAD
             lexer=MidnightLexer(),
+=======
+            lexer=CommentLexer(),
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
         ),
         wrap_lines=True,
     )
@@ -780,14 +961,22 @@ def _run_editor(
             # ------------------------------------------------
             # Default editor
             # ------------------------------------------------
+<<<<<<< HEAD
             "":
+=======
+            "": (
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
                 "bg:#000000 "
                 "#ffffff",
 
             # ------------------------------------------------
             # Header
             # ------------------------------------------------
+<<<<<<< HEAD
             "title":
+=======
+            "title": (
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
                 "bg:#ffffff "
                 "#000000 "
                 "bold",
@@ -795,20 +984,29 @@ def _run_editor(
             # ------------------------------------------------
             # Status
             # ------------------------------------------------
+<<<<<<< HEAD
             "status":
+=======
+            "status": (
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
                 "bg:#000000 "
                 "#ffffff",
 
             # ------------------------------------------------
             # Footer
             # ------------------------------------------------
+<<<<<<< HEAD
             "help":
+=======
+            "help": (
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
                 "bg:#000000 "
                 "#ffffff",
 
             # ------------------------------------------------
             # Shortcut
             # ------------------------------------------------
+<<<<<<< HEAD
             "shortcut":
                 "bg:#ffffff "
                 "#000000 "
@@ -825,6 +1023,20 @@ def _run_editor(
 
             "single-string":
                 "#00ffff",
+=======
+            "shortcut": (
+                "bg:#ffffff "
+                "#000000 "
+                "bold"
+            ),
+
+            # ------------------------------------------------
+            # Comments
+            # ------------------------------------------------
+            "comment": (
+                "fg:#808080"
+            ),
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
         }
     )
 
@@ -857,16 +1069,43 @@ def _run_editor(
 # MIDNIGHT CONFIG PATHS
 # ============================================================
 
+<<<<<<< HEAD
+=======
+# ~/.midconf
+# ~/.midhsty
+#
+# resolve to the platform-specific Midnight config directory:
+#
+# Windows:
+#   %APPDATA%\Midnight\
+#
+# Linux:
+#   ~/.config/Midnight/
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 def _resolve_config_path(
     context: ShellContext,
     value: str,
 ) -> tuple[Path, bool]:
     """
+<<<<<<< HEAD
     Resolve Midnight config shortcuts.
+=======
+    Resolve config/history shortcuts.
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
     Returns:
         (path, is_home_shortcut)
     """
+<<<<<<< HEAD
+=======
+
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
     normalized = (
         value
         .strip()
@@ -878,13 +1117,21 @@ def _resolve_config_path(
         "~/.midconf",
         "$HOME/.midconf",
     }:
+<<<<<<< HEAD
         return MIDCONF_PATH, True
+=======
+        return midconf_path(), True
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
     if normalized in {
         "~/.midhsty",
         "$HOME/.midhsty",
     }:
+<<<<<<< HEAD
         return MIDHSTY_PATH, True
+=======
+        return midhsty_path(), True
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
     return context.resolve_path(value), False
 

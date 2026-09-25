@@ -39,4 +39,5 @@ def _clear_screen() -> None:
 def cmd_trm(args: list[str], context: ShellContext) -> None:
     _clear_screen()
     print("Welcome to Midnight Terminal.")
-    print("[VER 0.000.0012] ALPHA - (c) Congg 2026.")
+    print("[VER 1.000.0001] RELEASE - (c) Congg 2026.")
+    print("")

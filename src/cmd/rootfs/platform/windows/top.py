@@ -4,7 +4,7 @@ import ctypes
 import sys
 import time
 
-from src.cmd.rootfs.ps.ps import (
+from src.cmd.rootfs.platform.windows.ps import (
     CPU_SAMPLE_INTERVAL,
     MEMORYSTATUSEX,
     ProcessMetrics,

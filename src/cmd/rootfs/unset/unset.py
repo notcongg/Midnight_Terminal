@@ -4,21 +4,19 @@ from pathlib import Path
 from src.cmd.rootfs.env.env import ENV
 from src.cmd.rootfs.env.env import ENV
 from src.shell.context.context import ShellContext
+from src.utils.paths import midconf_path
 
 
 def man_unset() -> str:
     return """UNSET(1)                 Midnight Terminal Manual                UNSET(1)
 
 NAME
-
     unset - remove a shell environment variable
 
 SYNOPSIS
-
     unset NAME
 
 DESCRIPTION
-
     Removes NAME from the Midnight Terminal environment.
 
     The variable is also removed from .midconf.
@@ -27,22 +25,23 @@ DESCRIPTION
     variable is removed.
 
 EXAMPLES
-
     unset GREETING
-
     unset PATH
-
     unset UP1
 
 SEE ALSO
-
     env(1), set(1)
-
 """
 
 
 def _envconfig_path() -> Path:
+<<<<<<< HEAD
     return MIDCONF_PATH
+=======
+    """Return the platform-specific Midnight .midconf path."""
+    return midconf_path()
+
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
 def _multiline_length(
     lines: list[str],
@@ -50,7 +49,10 @@ def _multiline_length(
 ) -> int:
     depth = 0
 
-    for index in range(start, len(lines)):
+    for index in range(
+        start,
+        len(lines),
+    ):
         line = lines[index]
 
         depth += line.count("[")
@@ -64,7 +66,9 @@ def _multiline_length(
     )
 
 
-def _remove_variable(name: str) -> None:
+def _remove_variable(
+    name: str,
+) -> None:
     path = _envconfig_path()
 
     if not path.exists():
@@ -91,7 +95,13 @@ def _remove_variable(name: str) -> None:
             continue
 
         # Multiline variable.
-        if stripped.endswith("[") or "=" in stripped and "[" in stripped:
+        if (
+            stripped.endswith("[")
+            or (
+                "=" in stripped
+                and "[" in stripped
+            )
+        ):
             index += _multiline_length(
                 lines,
                 index,
@@ -100,6 +110,11 @@ def _remove_variable(name: str) -> None:
 
         # Normal variable.
         index += 1
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     path.write_text(
         "\n".join(new_lines) + "\n",
@@ -133,5 +148,9 @@ def cmd_unset(
         if not name:
             continue
 
-        ENV.pop(name, None)
+        ENV.pop(
+            name,
+            None,
+        )
+
         _remove_variable(name)

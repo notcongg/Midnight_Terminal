@@ -72,3 +72,5 @@ src/cmd/rootfs/hwinfo/collection/ram/build/
 src/cmd/rootfs/hwinfo/collection/ram/build-win/
 src/midnight_terminal.egg-info/
 **/__pycache__/
+
+NOTE.md

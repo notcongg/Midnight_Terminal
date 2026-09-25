@@ -4,11 +4,28 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.shell.context.context import ShellContext
+<<<<<<< HEAD
 from src.sot import MIDALIAS_PATH
 
 
 def _midalias_path() -> Path:
     return MIDALIAS_PATH
+=======
+from src.utils.paths import midconf_path
+
+
+def _midconf_path() -> Path:
+    """
+    Return the platform-specific Midnight config path.
+
+    Windows:
+        %APPDATA%\\Midnight\\.midconf
+
+    Linux:
+        ~/.config/Midnight/.midconf
+    """
+    return midconf_path()
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
 
 def _read_midalias_lines() -> list[str]:
@@ -21,12 +38,23 @@ def _read_midalias_lines() -> list[str]:
         return path.read_text(
             encoding="utf-8"
         ).splitlines()
+<<<<<<< HEAD
+=======
+
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
     except OSError:
         return []
 
 
+<<<<<<< HEAD
 def _write_midalias_lines(lines: list[str]) -> None:
     path = _midalias_path()
+=======
+def _write_midconf_lines(
+    lines: list[str],
+) -> None:
+    path = _midconf_path()
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
     try:
         path.parent.mkdir(
@@ -38,9 +66,14 @@ def _write_midalias_lines(lines: list[str]) -> None:
             "\n".join(lines) + "\n",
             encoding="utf-8",
         )
+
     except OSError as error:
         print(
+<<<<<<< HEAD
             f"Failed to save .midalias: {error}"
+=======
+            f"Failed to save .midconf: {error}"
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
         )
 
 
@@ -90,7 +123,6 @@ def man_alias() -> str:
     return """ALIAS(1)                 Midnight Terminal Manual                ALIAS(1)
 
 NAME
-
     alias - create or manage command aliases
 
 SYNOPSIS
@@ -100,8 +132,12 @@ SYNOPSIS
     alias <name> = <command>
 
 DESCRIPTION
+<<<<<<< HEAD
 
     Creates command aliases. Aliases are stored in .midalias.
+=======
+    Creates command aliases. Aliases are stored in .midconf.
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
 EXAMPLES
 
@@ -112,9 +148,13 @@ EXAMPLES
     alias
 
 SEE ALSO
+<<<<<<< HEAD
 
     unalias(1), .midalias(5)
 
+=======
+    unalias(1), .midconf(5)
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 """
 
 
@@ -122,36 +162,42 @@ def man_unalias() -> str:
     return """UNALIAS(1)               Midnight Terminal Manual              UNALIAS(1)
 
 NAME
-
     unalias - remove a command alias
 
 SYNOPSIS
-
     unalias <name>
 
 DESCRIPTION
-
     Removes an alias from the current session.
 
 EXAMPLES
-
     unalias ll
 
 SEE ALSO
+<<<<<<< HEAD
 
     alias(1), .midalias(5)
 
+=======
+    alias(1), .midconf(5)
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 """
 
 
-def load_aliases(context: ShellContext) -> None:
+def load_aliases(
+    context: ShellContext,
+) -> None:
     """
     Load aliases from .midalias.
 
     Aliases are stored separately from .midconf.
     """
 
+<<<<<<< HEAD
     path = _midalias_path()
+=======
+    path = _midconf_path()
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
     if not path.exists():
         return
@@ -175,6 +221,7 @@ def load_aliases(context: ShellContext) -> None:
             continue
 
         rest = stripped[6:].strip()
+
         name, separator, value = rest.partition("=")
 
         if not separator:
@@ -244,7 +291,11 @@ def cmd_alias(
 
     aliases[name] = command
 
+<<<<<<< HEAD
     _save_alias_to_midalias(
+=======
+    _save_alias_to_midconf(
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
         name,
         command,
     )
@@ -268,14 +319,21 @@ def cmd_unalias(
         return
 
     del aliases[name]
+<<<<<<< HEAD
 
     _remove_alias_from_midalias(name)
 
+=======
+
+    _remove_alias_from_midconf(name)
+
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
     print(
         f"Alias '{name}' removed."
     )
 
 
+<<<<<<< HEAD
 def _save_alias_to_midalias(
     name: str,
     command: str,
@@ -283,19 +341,38 @@ def _save_alias_to_midalias(
     """Append or update an alias in .midalias."""
 
     lines = _read_midalias_lines()
+=======
+def _save_alias_to_midconf(
+    name: str,
+    command: str,
+) -> None:
+    """Append or update an alias in .midconf."""
+
+    lines = _read_midconf_lines()
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
     alias_prefix = f"alias {name}="
     new_line = f"alias {name}={command}"
 
     for i, line in enumerate(lines):
-        if line.strip().startswith(alias_prefix):
+        if line.strip().startswith(
+            alias_prefix
+        ):
             lines[i] = new_line
 
+<<<<<<< HEAD
             _write_midalias_lines(lines)
+=======
+            _write_midconf_lines(
+                lines
+            )
+
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
             return
 
     lines.append(new_line)
 
+<<<<<<< HEAD
     _write_midalias_lines(lines)
 
 
@@ -305,13 +382,37 @@ def _remove_alias_from_midalias(
     """Remove an alias from .midalias."""
 
     lines = _read_midalias_lines()
+=======
+    _write_midconf_lines(
+        lines
+    )
+
+
+def _remove_alias_from_midconf(
+    name: str,
+) -> None:
+    """Remove an alias from .midconf."""
+
+    lines = _read_midconf_lines()
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
     alias_prefix = f"alias {name}="
 
     new_lines = [
         line
         for line in lines
+<<<<<<< HEAD
         if not line.strip().startswith(alias_prefix)
     ]
 
     _write_midalias_lines(new_lines)
+=======
+        if not line.strip().startswith(
+            alias_prefix
+        )
+    ]
+
+    _write_midconf_lines(
+        new_lines
+    )
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)

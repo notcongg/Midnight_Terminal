@@ -1,18 +1,22 @@
 from src.sot import MIDHSTY_PATH
 
+from src.utils.paths import midhsty_path
 
+<<<<<<< HEAD
 path = MIDHSTY_PATH
+=======
+
+path: Path = midhsty_path()
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
 
 def man_history() -> str:
     return """HISTORY(1)               Midnight Terminal Manual              HISTORY(1)
 
 NAME
-
     history - display command history
 
 SYNOPSIS
-
     history
 
     history -cmd=<count>
@@ -20,17 +24,19 @@ SYNOPSIS
     history -index=<number>
 
 DESCRIPTION
-
     Shows previously executed commands.
 
 OPTIONS
+<<<<<<< HEAD
 
     -cmd=<count>    show last <count> commands
 
+=======
+    -cmd=<count>     show last <count> commands
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
     -index=<number> show command at specific index
 
 EXAMPLES
-
     history
 
     history -cmd=10
@@ -38,13 +44,11 @@ EXAMPLES
     history -index=5
 
 SEE ALSO
-
     .midhsty(5)
-
 """
 
 
-def cmd_history(args, context):
+def cmd_history(*args, context=None):
     command_number = None
     command_index = None
 
@@ -59,16 +63,24 @@ def cmd_history(args, context):
                 arg.split("=", 1)[1]
             )
 
+<<<<<<< HEAD
     # Create config directory if it does not exist.
     path.parent.mkdir(
         parents=True,
         exist_ok=True
+=======
+    # Make sure the Midnight config directory exists.
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
     )
 
     # Create history file if it does not exist.
     if not path.exists():
         path.touch()
 
+<<<<<<< HEAD
     try:
         with path.open(
             "r",
@@ -80,6 +92,14 @@ def cmd_history(args, context):
         raise RuntimeError(
             f"history: failed to read history file: {error}"
         ) from error
+=======
+    with open(
+        path,
+        "r",
+        encoding="utf-8",
+    ) as file:
+        lines = file.read().splitlines()
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
     commands = []
 
@@ -87,7 +107,13 @@ def cmd_history(args, context):
         if line.startswith("+"):
             commands.append(
                 "\n".join(
+<<<<<<< HEAD
                     lines[max(0, i - 1):i + 1]
+=======
+                    lines[
+                        max(0, i - 1):i + 1
+                    ]
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
                 )
             )
 

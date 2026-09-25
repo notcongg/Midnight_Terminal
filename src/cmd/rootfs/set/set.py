@@ -4,17 +4,16 @@ from pathlib import Path
 from src.sot import MIDCONF_PATH
 from src.cmd.rootfs.env.env import ENV
 from src.shell.context.context import ShellContext
+from src.utils.paths import midconf_path
 
 
 def man_set() -> str:
     return """SET(1)                   Midnight Terminal Manual                  SET(1)
 
 NAME
-
     set - assign a shell environment variable
 
 SYNOPSIS
-
     set NAME=value
 
     set NAME=[
@@ -22,7 +21,6 @@ SYNOPSIS
     ]
 
 DESCRIPTION
-
     Assigns NAME=value in the Midnight Terminal environment.
 
     The value is stored in ENV and persisted to .midconf.
@@ -30,7 +28,6 @@ DESCRIPTION
     Multiline variables can also be replaced directly.
 
 EXAMPLES
-
     set GREETING=hello
 
     set PATH=C:\\tools
@@ -43,14 +40,19 @@ EXAMPLES
     ]
 
 SEE ALSO
-
     env(1), unset(1)
-
 """
 
 
+<<<<<<< HEAD
 def _midconf_path() -> Path:
     return MIDCONF_PATH
+=======
+def _envconfig_path() -> Path:
+    """Return the platform-specific Midnight .midconf path."""
+    return midconf_path()
+
+>>>>>>> b471ff9 (feat + fix: add sleep, true, false (feat) | fix: midnight terminal config, history , alias, pass path + fix ls into new ui)
 
 def _find_variable(
     lines: list[str],
@@ -75,7 +77,10 @@ def _multiline_length(
 
     depth = 0
 
-    for index in range(start, len(lines)):
+    for index in range(
+        start,
+        len(lines),
+    ):
         line = lines[index]
 
         depth += line.count("[")
@@ -146,7 +151,8 @@ def _replace_multiline(
         )
 
     original_indent = lines[index][
-        : len(lines[index]) - len(lines[index].lstrip())
+        : len(lines[index])
+        - len(lines[index].lstrip())
     ]
 
     block[0] = (
@@ -158,7 +164,10 @@ def _replace_multiline(
         index,
     )
 
-    lines[index:index + old_length] = block
+    lines[
+        index:
+        index + old_length
+    ] = block
 
 
 def _write_variable(
@@ -186,7 +195,10 @@ def _write_variable(
         if value.lstrip().startswith("["):
             block = value.splitlines()
 
-            if not block or block[-1].strip() != "]":
+            if (
+                not block
+                or block[-1].strip() != "]"
+            ):
                 raise ValueError(
                     "set: multiline block must end with ]"
                 )
@@ -197,15 +209,22 @@ def _write_variable(
                     *block[1:],
                 ]
             )
+
         else:
             lines.append(
                 f"set ${name}={value};"
             )
 
+        path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
         path.write_text(
             "\n".join(lines) + "\n",
             encoding="utf-8",
         )
+
         return
 
     existing = lines[index].strip()
@@ -218,6 +237,7 @@ def _write_variable(
             name,
             value,
         )
+
     else:
         # Existing variable is normal.
         if value.lstrip().startswith("["):
@@ -234,6 +254,11 @@ def _write_variable(
                 name,
                 value.strip(),
             )
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     path.write_text(
         "\n".join(lines) + "\n",
@@ -339,7 +364,9 @@ def cmd_set(
     # Multiline assignment.
     if value.strip() == "[":
         try:
-            name, value = _parse_multiline(args)
+            name, value = _parse_multiline(
+                args
+            )
         except ValueError as exc:
             print(exc)
             return

@@ -22,4 +22,4 @@ set INPUT.HISTORY_IGNORE_CONSECUTIVE_DUPLICATES=true;
 
 alias ll=ls -la
 alias la=ls -a
-alias hi=echo lô
+set $a=echo hi;
