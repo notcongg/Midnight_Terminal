@@ -10,10 +10,12 @@
   <img src="https://img.shields.io/badge/License-GPLv3%2B-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Python-3.12%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/C%2B%2B-Native%20Extensions-blue.svg" alt="C++">
+  <img src="https://img.shields.io/badge/ChatGPT-412991?logo=openai&logoColor=white" alt="ChatGPT">
 </p>
 
 ## Overview
 > [BEFORE READ ANYTHING, PLEASE KNOW THIS IS A HOBBY PROJECT TO TEST CAN ME AND CHATGPT MAKE A SHELL.]
+> [THIS IS WROTE BY CHATGPT TOO.]
 
 Midnight Terminal started as a simple terminal project and evolved into a full command-line shell with its own command system, parser, executor, environment, history, pipelines, redirection, process management, AI integration, and native C++ extensions.
 
