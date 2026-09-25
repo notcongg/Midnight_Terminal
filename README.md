@@ -14,8 +14,10 @@
 </p>
 
 ## Overview
-> [BEFORE READ ANYTHING, PLEASE KNOW THIS IS A HOBBY PROJECT TO TEST CAN ME AND CHATGPT MAKE A SHELL.]
-> [THIS IS WROTE BY CHATGPT TOO.]
+> **This is a hobby project built to answer one question:
+> Can me and ChatGPT actually build a shell?**
+>
+> **Apparently, yes. And we may have gone too far.**
 
 Midnight Terminal started as a simple terminal project and evolved into a full command-line shell with its own command system, parser, executor, environment, history, pipelines, redirection, process management, AI integration, and native C++ extensions.
 
