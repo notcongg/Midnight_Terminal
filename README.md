@@ -27,7 +27,7 @@
 
 ## Overview
 
-> [NOTE]
+> [!NOTE]
 > This is an experimental hobby project exploring human-AI pair programming to build a custom shell environment from scratch.
 
 Midnight Terminal started as a basic command-line interface and rapidly evolved into a full-featured shell environment. It features a complete pipeline execution model, custom AST parser, environment state management, AI assistance integrated into the CLI lifecycle, and native C++ binding support for high-performance extensions.
